@@ -21,7 +21,9 @@ patchcss:
 
 metadata:
 	echo "export const developers = Object.entries([" > lib/prefs/metadata.js
-	git shortlog -sne >> lib/prefs/metadata.js || echo "" >> lib/prefs/metadata.js
+	# braceyourself, upstream PR #508: HEAD makes non-interactive builds read history.
+	# https://github.com/forge-ext/forge/pull/508
+	git shortlog -sne HEAD >> lib/prefs/metadata.js || echo "" >> lib/prefs/metadata.js
 	awk '!/dependabot|noreply/' lib/prefs/metadata.js > lib/prefs/metadata.js.tmp && mv lib/prefs/metadata.js.tmp lib/prefs/metadata.js
 	sed -i 's/^[[:space:]]*[0-9]*[[:space:]]*\(.*\) <\(.*\)>/  {name:"\1", email:"\2"},/g' lib/prefs/metadata.js
 	echo "].reduce((acc, x) => ({ ...acc, [x.email]: acc[x.email] ?? x.name }), {})).map(([email, name]) => name + ' <' + email + '>')" >> lib/prefs/metadata.js

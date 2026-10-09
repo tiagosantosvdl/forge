@@ -124,6 +124,40 @@ test("a render queued before dragging cannot retile the dragged window", () => {
   assert.equal(dragged.mode, h.modes.GRAB_TILE);
 });
 
+test("a monitor geometry change stops a queued render before it uses obsolete monitor nodes", () => {
+  const h = createHarness();
+  h.addWindow();
+  let matches = true;
+  let changes = 0;
+  h.wm.layouts = {
+    key: '["display"]',
+    geometryMatches: () => matches,
+    monitorsChanged() {
+      this.transitioning = true;
+      changes++;
+    },
+  };
+  h.wm.renderTree("focus");
+  matches = false;
+  h.flush();
+  assert.equal(h.renders(), 0);
+  assert.equal(changes, 1);
+  assert.equal(h.wm._renderTreeSrcId, 0);
+});
+
+test("workspace and monitor restoration blocks forced rendering until the tree is complete", () => {
+  const h = createHarness();
+  h.addWindow();
+  h.wm.layouts = { restoring: true };
+  h.wm.renderTree("workspace-changed", true);
+  h.flush();
+  assert.equal(h.renders(), 0);
+  h.wm.layouts = { rendered() {} };
+  h.wm.renderTree("restore-complete", true);
+  h.flush();
+  assert.equal(h.renders(), 1);
+});
+
 function createDestructionHarness() {
   const h = createHarness();
   const monitor = Object.create(h.context.Node.prototype);
@@ -467,6 +501,15 @@ test("invalid windows cannot trigger automatic splitting", () => {
   h.wm.trackWindow(null, h.restored);
   assert.equal(h.splits.length, 0);
   assert.equal(h.tree.findNode(h.restored), null);
+});
+
+test("#578: an explicit split direction is preserved when the next window opens", () => {
+  const h = createRestoreHarness();
+  const focused = h.tree.childNodes[0];
+  h.tree.splitChosenFor = focused.nodeValue;
+  h.wm.trackWindow(null, h.restored);
+  assert.equal(h.splits.length, 0);
+  assert.ok(h.tree.findNode(h.restored));
 });
 
 test("new windows are tracked normally when automatic splitting is disabled", () => {

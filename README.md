@@ -1,44 +1,113 @@
-# Forge needs a NEW MAINTAINER
+# Forge
 
-Forge is a GNOME Shell extension that provides tiling/window management **_AND_** is looking for a new owner or maintainer:
-- https://github.com/orgs/forge-ext/discussions/276
-- https://github.com/forge-ext/forge/issues/336
-- Forge By Claude and @jcrussell - please check it out! https://github.com/jcrussell/forge
+A GNOME Shell tiling and window manager, maintained in this
+[fork](https://github.com/tiagosantosvdl/forge) of
+[forge-ext/forge](https://github.com/forge-ext/forge).
+
+## Project status
+
+This fork adds remembered layouts across sessions and display changes, fixes
+window dragging and restoration, and incorporates fixes from 34 upstream pull
+requests. Adapted fixes carry comments identifying the PR submitters and numbers.
+They cover resizing and minimum sizes, nested and tabbed groups, focus borders,
+window lifetime and signal cleanup, floating rules, and configuration recovery.
+
+The extension declares compatibility with GNOME Shell 45–51 and supports X11 and
+Wayland. This declaration is not a completed test matrix for every version.
+Current validation includes 81 automated tests, native GJS configuration and
+stylesheet checks, formatting checks, and an extension package build. Full
+GNOME Shell validation of the latest upstream fixes is still pending. Repository
+changes take effect in an installed extension only after rebuilding, installing,
+and reloading it.
 
 ## Features
 
-- Works on GNOME 45 through 51. X11 and Wayland
-- Tree-based tiling with vertical and horizontal split containers similar to i3-wm and sway-wm
-- Vim-like keybindings for navigation/swapping windows/moving windows in the containers
-- Drag and drop tiling
-- Support for floating windows, smart gaps and focus hint
-- Customizable shortcuts in extension preferences
-- Some support for multi-display
-- Tiling support per workspace
-- Update hint color scheme from preferences
-- Stacked tiling layout
-- Swap current window with the last active window
-- Auto Split or Quarter Tiling
-- Show/hide tab decoration via keybinding https://github.com/forge-ext/forge/issues/180
-- Window resize using keyboard shortcuts
+- Horizontal and vertical split containers with adjustable proportions
+- Tabbed and stacked groups, including nested groups
+- Mouse drag and drop with grouping previews
+- Keyboard navigation, moving, swapping, and resizing
+- Floating windows and persistent window or application rules
+- Automatic splitting, smart gaps, and customizable focus hints
+- Tiling controls per workspace
+- Remembered layouts per set of active displays, including workspace membership
+- Customizable shortcuts, colors, gaps, and decorations in preferences
 
-## Known Issues / Limitations
+## Remembered layouts
 
-- Does not support dynamic workspaces
-- Does not support vertical monitor setup
+Forge saves monitor placement, workspace membership, groups, split directions,
+and proportions in `$XDG_STATE_HOME/forge/layouts.json`, normally
+`~/.local/state/forge/layouts.json`.
+
+Each set of active displays has its own saved layout. There are no fixed
+“docked” or “laptop-only” profiles. Displays are identified by hardware identity
+rather than their numerical index; rearranging or resizing the same displays
+reuses their layout. Displays without a unique serial use their connector, and
+otherwise identical identities are disambiguated by connector.
+
+When Forge encounters a new display configuration, groups on surviving displays
+stay there. Groups from missing displays move to the primary display on their
+existing workspaces. Groups that cannot fit side by side become tabs. Returning
+to a previously used configuration restores its saved layout after monitor
+changes settle.
+
+Workspace additions and removals are handled, including renumbering saved
+workspace assignments after removal. If a saved workspace is unavailable, its
+groups use the last available workspace; Forge does not create workspaces to
+match saved assignments. GNOME manages switching workspaces and moving windows
+between them.
+
+Windows are matched by window class, falling back to application ID, without
+using their titles. Edge app windows can be distinguished when their window
+class exposes the app and browser profile. Windows with the same identity,
+including ordinary Edge windows, share the last saved slot as tabs. Floating
+windows are excluded. Slots for apps that have not reopened are retained so they
+can join their previous groups later.
+
+This feature remembers placement and grouping; it does not launch apps or
+restore browser tabs. To reset it, disable Forge, remove `layouts.json`, and
+enable Forge again.
 
 ## Installation
 
-- Build it yourself via `make install` or `make dev`.
-- Download from [GNOME extensions website](https://extensions.gnome.org/extension/4481/forge/).
-- [AUR Package](https://aur.archlinux.org/packages/gnome-shell-extension-forge) - thanks to [@Radeox](https://github.com/Radeox)
-- [Fedora Package](https://packages.fedoraproject.org/pkgs/gnome-shell-extension-forge/gnome-shell-extension-forge/) - thanks to [@carlwgeorge](https://github.com/carlwgeorge)
+Build dependencies are `make`, Git, `gettext`, and GLib tools including
+`glib-compile-schemas`. Install `zip` to build a distributable archive. Node.js
+18+ and npm are needed for development checks, but not to run the extension.
 
-![image](https://user-images.githubusercontent.com/348125/146386593-8f53ea8b-2cf3-4d44-a613-bbcaf89f9d4a.png)
+From a checkout:
 
-## Forge Keybinding Defaults
+```bash
+make build
+make install
+# After reloading GNOME Shell, enable Forge if needed:
+gnome-extensions enable forge@jmmaranan.com
+```
 
-See the acceptable key combinations on the [wiki](https://github.com/forge-ext/forge/wiki/Keyboard-Shortcuts)
+`make install` copies the existing build from `temp/` into
+`~/.local/share/gnome-shell/extensions/forge@jmmaranan.com`; it does not build it.
+This fork uses the upstream UUID, so installing it replaces another user-local
+Forge installation with that UUID.
+
+Log out and back in on Wayland to load newly installed code. On X11, restart
+GNOME Shell with Alt+F2, then `r`. Save your work before restarting the session.
+Open extension preferences with:
+
+```bash
+gnome-extensions prefs forge@jmmaranan.com
+```
+
+## Keyboard shortcuts
+
+The table lists repository schema defaults. Existing user settings take
+precedence, and shortcuts can be changed or cleared in Forge preferences.
+Forge registers its own bindings; it does not rewrite GNOME's screenshot or
+screen-lock shortcut settings. Conflicting bindings still need to be resolved
+in Forge preferences or GNOME Settings.
+
+The stacked-layout default remains Shift+Super+S. To keep that combination for
+screenshots, change Forge's stacked-layout binding in preferences. The local
+configuration used during development uses Ctrl+Alt+Super+K; this user setting
+is not installed automatically on other systems. Ctrl+L alone is not a Forge
+default.
 
 | Action | Shortcut |
 | --- | --- |
@@ -76,6 +145,7 @@ See the acceptable key combinations on the [wiki](https://github.com/forge-ext/f
 | Toggle tabbed layout | `<Shift> + <Super> + t` |
 | Show/hide tab decoration | `<Ctrl> + <Alt> + y` |
 | Activate tile drag-drop | `Start dragging - Mod key configuration in prefs` |
+| Snap active window to center | `<Ctrl> + <Alt> + c` |
 | Snap active window left two thirds | `<Ctrl> + <Alt> + e` |
 | Snap active window right two thirds | `<Ctrl> + <Alt> + t` |
 | Snap active window left third | `<Ctrl> + <Alt> + d` |
@@ -83,62 +153,59 @@ See the acceptable key combinations on the [wiki](https://github.com/forge-ext/f
 | Persist toggle floating for active window | `<Super> + c` |
 | Persist toggle floating for active window and its window class | `<Super><Shift> + c` |
 
-For any shortcut conflicts, the user has to manually configure those for now from the
-`GNOME Control Center > Keyboard > Customize Shortcuts`. https://github.com/forge-ext/forge/issues/37
+## Configuration and logs
 
-## Forge Override Paths
+| Data | Default path |
+| --- | --- |
+| Window rules | `~/.config/forge/config/windows.json` |
+| Stylesheet overrides | `~/.config/forge/stylesheet/forge/stylesheet.css` |
+| Remembered layouts | `~/.local/state/forge/layouts.json` |
 
-- Window Overrides: `$HOME/.config/forge/config/windows.json`
-- Stylesheet Overrides: `$HOME/.config/forge/stylesheet/forge/stylesheet.css`
+Configuration paths honor `XDG_CONFIG_HOME`; remembered layouts honor
+`XDG_STATE_HOME`. Invalid window rules fall back to defaults, with a `.bak`
+copy of nonempty invalid content. Incomplete stylesheets gain missing defaults
+while retaining custom properties, and the previous stylesheet is backed up.
 
-## GNOME Defaults
+For debug logging, build and install with `make dev`, then reload the session.
+This enables logging in the installed build. Follow Forge messages with:
 
-GNOME Shell has built in support for workspace management and seems to work well - so Forge will not touch those.
+```bash
+journalctl --user --follow --output=short-iso --grep '\[Forge\]'
+```
 
-User is encouraged to bind the following:
-- Switching/moving windows to different workspaces
-- Switching to numbered, previous or next workspace
+Debug logs can contain application names and window titles. When reporting a
+bug, include the GNOME version, X11 or Wayland session type, monitor arrangement,
+workspace and group layout, steps to reproduce, and relevant log messages.
 
 ## Development
 
-- The `main` branch contains gnome-4x code.
-- The `legacy` and `gnome-3-36` are the same and is now the source for gnome-3x.
-
-## Local Development Setup
-
-- Install NodeJS 16+
-- Install `gettext`
-- Run `npm install`
-- Commands:
-
 ```bash
-# Compile and override the gnome-shell update repo
-make dev
-
-# Or run below, and restart the shell manually
-make build && make debug && make install
-
-# X11 - build from source and restarts gnome-shell
-make test-x
-
-# Wayland - build from source and starts a wayland instance (no restart)
-make test-wayland
-
-# Formatting, when you do npm install,
-# husky gets installed should force prettier formatting during commit
-
-npm run format
+npm install
+npm test                          # Prettier formatting check
+npm run test:unit                 # Automated regression tests
+npm run format                    # Apply formatting
+make dist                         # Build forge@jmmaranan.com.zip
 ```
 
-## Contributing
+The automated tests can also run without npm dependencies:
 
-- Please be nice, friendly and welcoming on discussions/tickets.
-- See existing [Issues](https://github.com/forge-ext/forge/issues), or create a new Issue with the "Bug report" format if it doesn't exist.
+```bash
+node --test tests/*.test.js
+```
 
-## Credits
+They cover drag lifecycle, layout persistence, and upstream regressions using
+the extension's actual classes with controlled desktop APIs. They do not
+require a running GNOME Shell or prove desktop behavior on their own.
 
-Thank you to:
-- Forge extension contributors
-- Michael Stapelberg/contributors for i3
-- System76/contributors for pop-shell
-- ReworkCSS/contributors for css-parse/css-stringify
+`make dev` builds and installs a debug extension without restarting the session.
+`make test-nested` launches a nested Wayland shell where supported; it requires
+compatible GNOME binaries and settings schemas and is not an isolated extension
+installation. `make test` installs into the user extension directory before
+launching that shell. `make test-x` reinstalls and restarts the X11 shell.
+The default `make` target and `make prod` also restart the session, which logs
+out a Wayland session. Use explicit build and install commands when you want to
+control when the new code loads.
+
+Build targets regenerate translation files and contributor metadata, so inspect
+those changes before committing. Keep desktop testing separate from the
+unit-test and packaging results when reporting validation.

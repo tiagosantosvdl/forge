@@ -5,6 +5,7 @@
   "main": "extension.js",
   "scripts": {
     "test": "prettier --list-different \"./**/*.{js,jsx,ts,tsx,json}\"",
+    "test:unit": "node --test tests/*.test.js",
     "prepare": "husky install",
     "format": "prettier --write \"./**/*.{js,jsx,ts,tsx,json}\""
   },

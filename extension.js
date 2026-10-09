@@ -65,7 +65,9 @@ export default class ForgeExtension extends Extension {
     this.keybindings?.disable();
     this.keybindings = null;
     this.extWm = null;
-    this.themeWm = null;
+    // mayconrcmello, upstream PR #521: release the manager assigned by enable().
+    // https://github.com/forge-ext/forge/pull/521
+    this.theme = null;
     this.configMgr = null;
     this.settings = null;
     this.kbdSettings = null;
