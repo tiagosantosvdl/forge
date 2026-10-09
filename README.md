@@ -6,6 +6,8 @@ A GNOME Shell tiling and window manager, maintained in this
 
 ## Project status
 
+This fork is 100% maintained using OpenAI Codex.
+
 This fork adds remembered layouts across sessions and display changes, fixes
 window dragging and restoration, and incorporates fixes from 34 upstream pull
 requests. Adapted fixes carry comments identifying the PR submitters and numbers.
@@ -69,6 +71,33 @@ enable Forge again.
 
 ## Installation
 
+Download the ZIP or Debian package from
+[GitHub Releases](https://github.com/tiagosantosvdl/forge/releases).
+
+Install the ZIP for your user:
+
+```bash
+gnome-extensions install --force forge@tiagosantosvdl.github.io-22.51.1.zip
+```
+
+Log out and back in, then enable Forge in Extension Manager or with
+`gnome-extensions enable forge@tiagosantosvdl.github.io`. The ZIP uses GNOME's
+standard extension format; Extension Manager's browse catalog is separate from
+these GitHub releases.
+
+On Debian or Ubuntu with GNOME Shell 45–51, install the system-wide package:
+
+```bash
+sudo apt install ./gnome-shell-extension-forge_22.51.1_all.deb
+```
+
+Log out and back in, then enable Forge. A user-local installation with this
+fork's UUID takes precedence over the system-wide package; uninstall that local
+copy with `gnome-extensions uninstall forge@tiagosantosvdl.github.io` before
+switching to the Debian package.
+
+### Build from source
+
 Build dependencies are `make`, Git, `gettext`, and GLib tools including
 `glib-compile-schemas`. Install `zip` to build a distributable archive. Node.js
 18+ and npm are needed for development checks, but not to run the extension.
@@ -79,21 +108,54 @@ From a checkout:
 make build
 make install
 # After reloading GNOME Shell, enable Forge if needed:
-gnome-extensions enable forge@jmmaranan.com
+gnome-extensions enable forge@tiagosantosvdl.github.io
 ```
 
 `make install` copies the existing build from `temp/` into
-`~/.local/share/gnome-shell/extensions/forge@jmmaranan.com`; it does not build it.
-This fork uses the upstream UUID, so installing it replaces another user-local
-Forge installation with that UUID.
+`~/.local/share/gnome-shell/extensions/forge@tiagosantosvdl.github.io`; it does not build it.
+This fork uses `forge@tiagosantosvdl.github.io`, distinct from upstream's
+`forge@jmmaranan.com`, so installing it does not replace upstream. Disable the
+upstream extension before enabling this fork so only one tiling manager runs.
+The existing Forge settings and layout files are retained.
 
 Log out and back in on Wayland to load newly installed code. On X11, restart
 GNOME Shell with Alt+F2, then `r`. Save your work before restarting the session.
 Open extension preferences with:
 
 ```bash
-gnome-extensions prefs forge@jmmaranan.com
+gnome-extensions prefs forge@tiagosantosvdl.github.io
 ```
+
+## Releases
+
+The release workflow runs checks, builds both packages, and attaches them plus
+`SHA256SUMS` to a GitHub Release when a `vMAJOR.MINOR.PATCH` tag is pushed.
+The tag must match `package.json`. Prerelease tags such as `v22.51.2-rc.1` are
+also supported and produce GitHub prereleases.
+
+For each release, update the version in `package.json`, both root version fields
+in `package-lock.json`, and `version-name` in `metadata.json` (use a space in
+place of the prerelease hyphen for GNOME). Commit the changes, then tag and push:
+
+```bash
+git tag -a v22.51.1 -m "Forge 22.51.1"
+git push origin main v22.51.1
+```
+
+Publishing a release manually also builds and attaches the packages. Running
+the workflow with **Run workflow** builds downloadable workflow artifacts
+without publishing a release.
+
+Build the same packages locally with `make release`. This additionally needs
+Python 3 and `dpkg-deb` (from `dpkg`). Outputs are under `dist/`:
+
+- `forge@tiagosantosvdl.github.io-22.51.1.zip` for per-user installation
+- `gnome-shell-extension-forge_22.51.1_all.deb` for system-wide installation
+- `SHA256SUMS` for verification with `cd dist && sha256sum -c SHA256SUMS`
+
+The Debian package is architecture-independent and requires a supported GNOME
+Shell version. Its files live under
+`/usr/share/gnome-shell/extensions/forge@tiagosantosvdl.github.io/`.
 
 ## Keyboard shortcuts
 
@@ -184,7 +246,7 @@ npm install
 npm test                          # Prettier formatting check
 npm run test:unit                 # Automated regression tests
 npm run format                    # Apply formatting
-make dist                         # Build forge@jmmaranan.com.zip
+make dist                         # Build forge@tiagosantosvdl.github.io.zip
 ```
 
 The automated tests can also run without npm dependencies:

@@ -1,6 +1,6 @@
 {
   "name": "forge",
-  "version": "22.51.0",
+  "version": "22.51.1",
   "description": "Forge - Tiling Extension for GNOME",
   "main": "extension.js",
   "scripts": {
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/forge-ext/forge.git"
+    "url": "git+https://github.com/tiagosantosvdl/forge.git"
   },
   "keywords": [
     "gnome",
@@ -26,9 +26,9 @@
   ],
   "license": "GPL-3.0-or-later",
   "bugs": {
-    "url": "https://github.com/forge-ext/forge/issues"
+    "url": "https://github.com/tiagosantosvdl/forge/issues"
   },
-  "homepage": "https://github.com/forge-ext/forge#readme",
+  "homepage": "https://github.com/tiagosantosvdl/forge#readme",
   "devDependencies": {
     "@girs/adw-1": "^1.3.3-3.2.0",
     "@girs/clutter-12": "^12.0.0-3.2.0",

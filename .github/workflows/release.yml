@@ -1,0 +1,106 @@
+name: Release packages
+
+on:
+  push:
+    tags: ["v*"]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to build (downloads only; does not publish a release)"
+        type: string
+        default: "main"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.release.tag_name || inputs.ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.event.release.tag_name || github.ref }}
+          fetch-depth: 0
+
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gettext libglib2.0-bin make zip dpkg-dev python3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: npm
+
+      - name: Validate source and packaging
+        run: |
+          npm ci
+          npm test
+          npm run test:unit
+          python3 -m unittest discover -s tests -p '*test.py'
+
+      - name: Check release version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || (github.ref_type == 'tag' && github.ref_name) || '' }}
+        run: |
+          node <<'JS'
+          const pkg = require('./package.json');
+          const lock = require('./package-lock.json');
+          const metadata = require('./metadata.json');
+          if (lock.version !== pkg.version || lock.packages[''].version !== pkg.version ||
+              metadata['version-name'] !== pkg.version.replace('-', ' ')) {
+            throw new Error('Version fields in package.json, package-lock.json and metadata.json must match.');
+          }
+          JS
+          if [ -n "$RELEASE_TAG" ]; then
+            expected="v$(node -p 'require("./package.json").version')"
+            if [ "$RELEASE_TAG" != "$expected" ]; then
+              echo "Release tag $RELEASE_TAG must match package.json ($expected)." >&2
+              exit 1
+            fi
+          fi
+
+      - name: Build installable packages
+        run: make release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forge-release-packages
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    if: github.event_name == 'release' || (github.event_name == 'push' && github.ref_type == 'tag')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: forge-release-packages
+          path: dist
+
+      - name: Attach packages to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || github.ref_name }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" dist/* --clobber
+          else
+            extra=()
+            if [[ "$RELEASE_TAG" == *-* ]]; then
+              extra+=(--prerelease)
+            fi
+            gh release create "$RELEASE_TAG" dist/* --verify-tag \
+              --title "Forge $RELEASE_TAG" --generate-notes "${extra[@]}"
+          fi

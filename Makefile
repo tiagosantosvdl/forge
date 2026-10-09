@@ -1,8 +1,8 @@
-UUID = "forge@jmmaranan.com"
+UUID = forge@tiagosantosvdl.github.io
 INSTALL_PATH = $(HOME)/.local/share/gnome-shell/extensions/$(UUID)
 MSGSRC = $(wildcard po/*.po)
 
-.PHONY: all clean install schemas uninstall enable disable log debug patchcss
+.PHONY: all clean install schemas uninstall enable disable log debug patchcss release dist build metadata
 
 all: build install enable restart
 
@@ -90,6 +90,10 @@ purge:
 dist: build
 	cd temp && \
 	zip -qr "../${UUID}.zip" .
+
+# Versioned ZIP, system-wide Debian package, and checksums for GitHub Releases.
+release: build
+	python3 scripts/package-release.py
 
 restart:
 	if bash -c 'xprop -root &> /dev/null'; then \
