@@ -182,12 +182,12 @@
         </key>
 
         <key type="as" name="con-split-vertical">
-            <default><![CDATA[['<Super>v']]]></default>
+            <default><![CDATA[['<Ctrl><Alt><Super>v']]]></default>
             <summary>Split a container vertically</summary>
         </key>
 
         <key type="as" name="con-stacked-layout-toggle">
-            <default><![CDATA[['<Shift><Super>s']]]></default>
+            <default><![CDATA[['<Ctrl><Alt><Super>s']]]></default>
             <summary>Toggle stacked layout</summary>
         </key>
 
@@ -202,63 +202,63 @@
         </key>
 
         <key type="as" name="window-swap-left">
-            <default><![CDATA[['<Ctrl><Super>h']]]></default>
+            <default><![CDATA[['<Alt><Ctrl><Super>h']]]></default>
             <summary>Swap window left</summary>
         </key>
 
         <key type="as" name="window-swap-down">
-            <default><![CDATA[['<Ctrl><Super>j']]]></default>
+            <default><![CDATA[['<Alt><Ctrl><Super>j']]]></default>
             <summary>Swap window down</summary>
         </key>
 
         <key type="as" name="window-swap-up">
-            <default><![CDATA[['<Ctrl><Super>k']]]></default>
+            <default><![CDATA[['<Alt><Ctrl><Super>k']]]></default>
             <summary>Swap window up</summary>
         </key>
 
         <key type="as" name="window-swap-right">
-            <default><![CDATA[['<Ctrl><Super>l']]]></default>
+            <default><![CDATA[['<Alt><Ctrl><Super>l']]]></default>
             <summary>Swap window right</summary>
         </key>
 
         <key type="as" name="window-move-left">
-            <default><![CDATA[['<Shift><Super>h']]]></default>
+            <default><![CDATA[['<Alt><Shift><Super>h']]]></default>
             <summary>Move window left</summary>
         </key>
 
         <key type="as" name="window-move-down">
-            <default><![CDATA[['<Shift><Super>j']]]></default>
+            <default><![CDATA[['<Alt><Shift><Super>j']]]></default>
             <summary>Move window down</summary>
         </key>
 
         <key type="as" name="window-move-up">
-            <default><![CDATA[['<Shift><Super>k']]]></default>
+            <default><![CDATA[['<Alt><Shift><Super>k']]]></default>
             <summary>Move window up</summary>
         </key>
 
         <key type="as" name="window-move-right">
-            <default><![CDATA[['<Shift><Super>l']]]></default>
+            <default><![CDATA[['<Alt><Shift><Super>l']]]></default>
             <summary>Move window right</summary>
         </key>
 
         <key type="as" name="window-focus-left">
-            <default><![CDATA[['<Super>h']]]></default>
-            <summary>Move window left</summary>
+            <default><![CDATA[['<Alt><Super>h']]]></default>
+            <summary>Focus window left</summary>
         </key>
 
         <key type="as" name="window-focus-down">
-            <default><![CDATA[['<Super>j']]]></default>
-            <summary>Move window down</summary>
+            <default><![CDATA[['<Alt><Super>j']]]></default>
+            <summary>Focus window down</summary>
         </key>
 
         <key type="as" name="window-focus-up">
-            <default><![CDATA[['<Super>k']]]></default>
-            <summary>Move window up</summary>
+            <default><![CDATA[['<Alt><Super>k']]]></default>
+            <summary>Focus window up</summary>
         </key>
 
         <key type="as" name="window-focus-right">
-            <default><![CDATA[['<Super>l']]]></default>
-            <summary>Move window right</summary>
+            <default><![CDATA[['<Alt><Super>l']]]></default>
+            <summary>Focus window right</summary>
         </key>
 
         <key type="as" name="window-toggle-float">
@@ -277,7 +277,7 @@
         </key>
 
         <key type="as" name="prefs-open">
-            <default><![CDATA[['<Super>Period']]]></default>
+            <default><![CDATA[['<Super>period']]]></default>
             <summary>Open the extension's preferences</summary>
         </key>
 
@@ -300,23 +300,23 @@
         </key>
 
         <key type="as" name="window-snap-one-third-right">
-          <default><![CDATA[['<Ctrl><Alt>g']]]></default>
+          <default><![CDATA[['<Ctrl><Alt><Super>g']]]></default>
         </key>
 
         <key type="as" name="window-snap-two-third-right">
-          <default><![CDATA[['<Ctrl><Alt>t']]]></default>
+          <default><![CDATA[['<Ctrl><Alt><Super>t']]]></default>
         </key>
 
         <key type="as" name="window-snap-one-third-left">
-          <default><![CDATA[['<Ctrl><Alt>d']]]></default>
+          <default><![CDATA[['<Ctrl><Alt><Super>d']]]></default>
         </key>
 
         <key type="as" name="window-snap-two-third-left">
-          <default><![CDATA[['<Ctrl><Alt>e']]]></default>
+          <default><![CDATA[['<Ctrl><Alt><Super>e']]]></default>
         </key>
 
         <key type="as" name="window-snap-center">
-          <default><![CDATA[['<Ctrl><Alt>c']]]></default>
+          <default><![CDATA[['<Ctrl><Alt><Super>c']]]></default>
         </key>
 
         <key type="as" name="window-resize-left-increase">

@@ -77,7 +77,7 @@ Download the ZIP or Debian package from
 Install the ZIP for your user:
 
 ```bash
-gnome-extensions install --force forge@tiagosantosvdl.github.io-22.51.1.zip
+gnome-extensions install --force forge@tiagosantosvdl.github.io-22.51.2.zip
 ```
 
 Log out and back in, then enable Forge in Extension Manager or with
@@ -88,7 +88,7 @@ these GitHub releases.
 On Debian or Ubuntu with GNOME Shell 45–51, install the system-wide package:
 
 ```bash
-sudo apt install ./gnome-shell-extension-forge_22.51.1_all.deb
+sudo apt install ./gnome-shell-extension-forge_22.51.2_all.deb
 ```
 
 Log out and back in, then enable Forge. A user-local installation with this
@@ -138,8 +138,8 @@ in `package-lock.json`, and `version-name` in `metadata.json` (use a space in
 place of the prerelease hyphen for GNOME). Commit the changes, then tag and push:
 
 ```bash
-git tag -a v22.51.1 -m "Forge 22.51.1"
-git push origin main v22.51.1
+git tag -a v22.51.2 -m "Forge 22.51.2"
+git push origin main v22.51.2
 ```
 
 Publishing a release manually also builds and attaches the packages. Running
@@ -149,8 +149,8 @@ without publishing a release.
 Build the same packages locally with `make release`. This additionally needs
 Python 3 and `dpkg-deb` (from `dpkg`). Outputs are under `dist/`:
 
-- `forge@tiagosantosvdl.github.io-22.51.1.zip` for per-user installation
-- `gnome-shell-extension-forge_22.51.1_all.deb` for system-wide installation
+- `forge@tiagosantosvdl.github.io-22.51.2.zip` for per-user installation
+- `gnome-shell-extension-forge_22.51.2_all.deb` for system-wide installation
 - `SHA256SUMS` for verification with `cd dist && sha256sum -c SHA256SUMS`
 
 The Debian package is architecture-independent and requires a supported GNOME
@@ -159,17 +159,31 @@ Shell version. Its files live under
 
 ## Keyboard shortcuts
 
-The table lists repository schema defaults. Existing user settings take
-precedence, and shortcuts can be changed or cleared in Forge preferences.
-Forge registers its own bindings; it does not rewrite GNOME's screenshot or
-screen-lock shortcut settings. Conflicting bindings still need to be resolved
-in Forge preferences or GNOME Settings.
+The table lists recommended repository defaults. Saved user shortcuts take
+precedence. Open **Forge Preferences → Keyboard** to edit them. Type shortcuts
+separated by commas, then press Enter or the apply button to save; typing alone
+does not change a binding. The clear button disables an action.
 
-The stacked-layout default remains Shift+Super+S. To keep that combination for
-screenshots, change Forge's stacked-layout binding in preferences. The local
-configuration used during development uses Ctrl+Alt+Super+K; this user setting
-is not installed automatically on other systems. Ctrl+L alone is not a Forge
-default.
+Preferences shows conflicts with GNOME's window manager, Shell, media keys,
+custom shortcuts, and other Forge actions. Conflicting or invalid edits cannot
+be saved. GNOME shortcut changes update these warnings while preferences is
+open. Shortcuts grabbed dynamically by other apps or extensions may not appear
+in this check; registration failures produce a desktop notification.
+
+Use **Apply recommended shortcuts** to replace all saved Forge keyboard
+shortcuts after confirmation. This preserves the mouse drag modifier. The
+recommended set is checked against your current GNOME shortcuts before it is
+applied. Existing saved shortcuts are never rewritten just by opening
+preferences or upgrading Forge.
+
+At runtime, an action with a conflicting binding is disabled and reported in a
+notification. Resolve it in preferences; Forge refreshes its registrations when
+shortcut settings change. GNOME's shortcuts are preserved.
+
+Navigation uses Super+Alt+H/J/K/L; add Ctrl for swapping or Shift for moving.
+Stacked layout uses Ctrl+Alt+Super+S, and vertical splitting uses
+Ctrl+Alt+Super+V. Snapping uses Ctrl+Alt+Super, avoiding common screenshot,
+lock-screen, minimize, terminal, and workspace-navigation bindings.
 
 | Action | Shortcut |
 | --- | --- |
@@ -183,35 +197,35 @@ default.
 | Decrease active window size right | `<Ctrl> + <Shift> + <Super> + y` |
 | Open preferences | `<Super> + period` |
 | Toggle tiling mode |`<Super> + w` |
-| Focus left | `<Super> + h` |
-| Focus right | `<Super> + l` |
-| Focus up | `<Super> + k` |
-| Focus down | `<Super> + j` |
+| Focus left | `<Alt> + <Super> + h` |
+| Focus right | `<Alt> + <Super> + l` |
+| Focus up | `<Alt> + <Super> + k` |
+| Focus down | `<Alt> + <Super> + j` |
 | Swap current window with last active | `<Super> + Return` |
-| Swap active window left | `<Ctrl> + <Super> + h` |
-| Swap active window right | `<Ctrl> + <Super> + l` |
-| Swap active window up | `<Ctrl> + <Super> + k` |
-| Swap active window down | `<Ctrl> + <Super> + j` |
-| Move active window left | `<Shift> + <Super> + h` |
-| Move active window right | `<Shift> + <Super> + l` |
-| Move active window up | `<Shift> + <Super> + k` |
-| Move active window down | `<Shift> + <Super> + j` |
+| Swap active window left | `<Alt> + <Ctrl> + <Super> + h` |
+| Swap active window right | `<Alt> + <Ctrl> + <Super> + l` |
+| Swap active window up | `<Alt> + <Ctrl> + <Super> + k` |
+| Swap active window down | `<Alt> + <Ctrl> + <Super> + j` |
+| Move active window left | `<Alt> + <Shift> + <Super> + h` |
+| Move active window right | `<Alt> + <Shift> + <Super> + l` |
+| Move active window up | `<Alt> + <Shift> + <Super> + k` |
+| Move active window down | `<Alt> + <Shift> + <Super> + j` |
 | Split container horizontally | `<Super> + z` |
-| Split container vertically | `<Super> + v` |
+| Split container vertically | `<Ctrl> + <Alt> + <Super> + v` |
 | Toggle split container | `<Super> + g` |
 | Gap increase | `<Ctrl> + <Super> + Plus` |
 | Gap decrease | `<Ctrl> + <Super> + Minus` |
 | Toggle focus hint | `<Super> + x` |
 | Toggle active workspace tiling | `<Shift> + <Super> + w` |
-| Toggle stacked layout | `<Shift> + <Super> + s` |
+| Toggle stacked layout | `<Ctrl> + <Alt> + <Super> + s` |
 | Toggle tabbed layout | `<Shift> + <Super> + t` |
 | Show/hide tab decoration | `<Ctrl> + <Alt> + y` |
 | Activate tile drag-drop | `Start dragging - Mod key configuration in prefs` |
-| Snap active window to center | `<Ctrl> + <Alt> + c` |
-| Snap active window left two thirds | `<Ctrl> + <Alt> + e` |
-| Snap active window right two thirds | `<Ctrl> + <Alt> + t` |
-| Snap active window left third | `<Ctrl> + <Alt> + d` |
-| Snap active window right third | `<Ctrl> + <Alt> + g` |
+| Snap active window to center | `<Ctrl> + <Alt> + <Super> + c` |
+| Snap active window left two thirds | `<Ctrl> + <Alt> + <Super> + e` |
+| Snap active window right two thirds | `<Ctrl> + <Alt> + <Super> + t` |
+| Snap active window left third | `<Ctrl> + <Alt> + <Super> + d` |
+| Snap active window right third | `<Ctrl> + <Alt> + <Super> + g` |
 | Persist toggle floating for active window | `<Super> + c` |
 | Persist toggle floating for active window and its window class | `<Super><Shift> + c` |
 
@@ -245,9 +259,14 @@ workspace and group layout, steps to reproduce, and relevant log messages.
 npm install
 npm test                          # Prettier formatting check
 npm run test:unit                 # Automated regression tests
+python3 -m unittest discover -s tests -p '*test.py'  # Packaging and native preferences tests
 npm run format                    # Apply formatting
 make dist                         # Build forge@tiagosantosvdl.github.io.zip
 ```
+
+Native shortcut preferences tests use GJS, GTK 4, libadwaita, GNOME settings
+schemas, and `gtk4-broadwayd`. They run with a private display and in-memory
+settings; both CI workflows install these dependencies.
 
 The automated tests can also run without npm dependencies:
 
