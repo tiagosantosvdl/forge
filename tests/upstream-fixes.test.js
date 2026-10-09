@@ -175,6 +175,11 @@ function harness() {
       positionFromDirection: (direction) =>
         ["RIGHT", "DOWN"].includes(direction) ? "AFTER" : "BEFORE",
       removeGapOnRect: (rect) => ({ ...rect }),
+      rectContainsPoint: (rect, point) =>
+        point[0] >= rect.x &&
+        point[0] <= rect.x + rect.width &&
+        point[1] >= rect.y &&
+        point[1] <= rect.y + rect.height,
       grabMode: () => "RESIZING",
     },
     Window: {
@@ -317,6 +322,65 @@ function harness() {
     },
   };
 }
+
+for (const layout of ["HSPLIT", "VSPLIT"])
+  for (const sameParent of [true, false])
+    for (const groupLayout of ["TABBED", "STACKED"])
+      test(`center drop in ${layout} creates ${groupLayout} with only the hovered window (${
+        sameParent ? "same container" : "another monitor"
+      })`, () => {
+        const h = harness();
+        const monitor = h.monitor();
+        const split = h.group(layout);
+        split.rect = { x: 2000, y: 0, width: 2000, height: 1000 };
+        monitor.appendChild(split);
+        const windows = Array.from({ length: 5 }, (_, index) =>
+          h.window(`window${index}`, {
+            x: 2000 + (layout === "HSPLIT" ? index * 400 : 0),
+            y: layout === "VSPLIT" ? index * 200 : 0,
+            width: layout === "HSPLIT" ? 400 : 2000,
+            height: layout === "VSPLIT" ? 200 : 1000,
+          })
+        );
+        for (const window of windows) split.appendChild(window.node);
+        const dragged = sameParent ? windows[0] : h.window("from other monitor");
+        if (!sameParent) {
+          const sourceMonitor = h.group("HSPLIT", "MONITOR", "mo1ws0");
+          h.tree.appendChild(sourceMonitor);
+          sourceMonitor.appendChild(dragged.node);
+        }
+        const hovered = windows[2];
+        dragged.node.mode = "GRAB_TILE";
+        dragged.node.previewHint = new h.context.St.Bin();
+        h.wm.nodeWinAtPointer = hovered.node;
+        h.wm.getPointer = () => [
+          hovered.rect.x + hovered.rect.width / 2,
+          hovered.rect.y + hovered.rect.height / 2,
+        ];
+        h.settings.get_string = () => groupLayout.toLowerCase();
+        h.booleans.set("preview-hint-enabled", true);
+
+        h.wm.moveWindowToPointer(dragged.node, true);
+        const hint = dragged.node.previewHint;
+        assert.deepEqual(
+          { x: hint.x, y: hint.y, width: hint.width, height: hint.height },
+          hovered.rect
+        );
+        assert.equal(split.layout, layout);
+        assert.equal(split.childNodes.length, 5);
+
+        h.wm.moveWindowToPointer(dragged.node);
+        const group = hovered.node.parentNode;
+        assert.notEqual(group, split);
+        assert.equal(group.layout, groupLayout);
+        assert.equal(group.parentNode, split);
+        assert.deepEqual([...group.childNodes], [hovered.node, dragged.node]);
+        assert.equal(split.layout, layout);
+        const expected = windows
+          .filter((window) => !sameParent || window !== dragged)
+          .map((window) => (window === hovered ? group : window.node));
+        assert.deepEqual([...split.childNodes], expected);
+      });
 
 test("#541: containers accept a null rectangle until their first render", () => {
   const h = harness();

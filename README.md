@@ -16,11 +16,14 @@ window lifetime and signal cleanup, floating rules, and configuration recovery.
 
 The extension declares compatibility with GNOME Shell 45–51 and supports X11 and
 Wayland. This declaration is not a completed test matrix for every version.
-Current validation includes 81 automated tests, native GJS configuration and
+Current validation includes automated regression tests, native GJS configuration and
 stylesheet checks, formatting checks, and an extension package build. Full
 GNOME Shell validation of the latest upstream fixes is still pending. Repository
 changes take effect in an installed extension only after rebuilding, installing,
 and reloading it.
+
+Version 22.51.3 fixes center-drop grouping in split containers: the preview and
+drop target only the hovered window, preserving unrelated sibling windows.
 
 ## Features
 
@@ -77,7 +80,7 @@ Download the ZIP or Debian package from
 Install the ZIP for your user:
 
 ```bash
-gnome-extensions install --force forge@tiagosantosvdl.github.io-22.51.2.zip
+gnome-extensions install --force forge@tiagosantosvdl.github.io-22.51.3.zip
 ```
 
 Log out and back in, then enable Forge in Extension Manager or with
@@ -88,7 +91,7 @@ these GitHub releases.
 On Debian or Ubuntu with GNOME Shell 45–51, install the system-wide package:
 
 ```bash
-sudo apt install ./gnome-shell-extension-forge_22.51.2_all.deb
+sudo apt install ./gnome-shell-extension-forge_22.51.3_all.deb
 ```
 
 Log out and back in, then enable Forge. A user-local installation with this
@@ -130,7 +133,7 @@ gnome-extensions prefs forge@tiagosantosvdl.github.io
 
 The release workflow runs checks, builds both packages, and attaches them plus
 `SHA256SUMS` to a GitHub Release when a `vMAJOR.MINOR.PATCH` tag is pushed.
-The tag must match `package.json`. Prerelease tags such as `v22.51.2-rc.1` are
+The tag must match `package.json`. Prerelease tags such as `v22.51.3-rc.1` are
 also supported and produce GitHub prereleases.
 
 For each release, update the version in `package.json`, both root version fields
@@ -138,8 +141,8 @@ in `package-lock.json`, and `version-name` in `metadata.json` (use a space in
 place of the prerelease hyphen for GNOME). Commit the changes, then tag and push:
 
 ```bash
-git tag -a v22.51.2 -m "Forge 22.51.2"
-git push origin main v22.51.2
+git tag -a v22.51.3 -m "Forge 22.51.3"
+git push origin main v22.51.3
 ```
 
 Publishing a release manually also builds and attaches the packages. Running
@@ -149,8 +152,8 @@ without publishing a release.
 Build the same packages locally with `make release`. This additionally needs
 Python 3 and `dpkg-deb` (from `dpkg`). Outputs are under `dist/`:
 
-- `forge@tiagosantosvdl.github.io-22.51.2.zip` for per-user installation
-- `gnome-shell-extension-forge_22.51.2_all.deb` for system-wide installation
+- `forge@tiagosantosvdl.github.io-22.51.3.zip` for per-user installation
+- `gnome-shell-extension-forge_22.51.3_all.deb` for system-wide installation
 - `SHA256SUMS` for verification with `cd dist && sha256sum -c SHA256SUMS`
 
 The Debian package is architecture-independent and requires a supported GNOME
