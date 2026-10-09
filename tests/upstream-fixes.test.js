@@ -23,6 +23,9 @@ function harness() {
     get_parent() {
       return this.parent;
     }
+    get_n_children() {
+      return this.children.length;
+    }
     get_children() {
       return [...this.children];
     }
@@ -260,6 +263,7 @@ function harness() {
       get_workspace: () => activeWorkspace,
       get_monitor: () => 0,
       located_on_workspace: (workspace) => workspace === activeWorkspace,
+      showing_on_its_workspace: () => true,
       appears_focused: true,
       get_frame_rect: () => ({ ...rect }),
       get_compositor_private: () => (alive ? actor : null),
@@ -736,12 +740,148 @@ test("#571: a split inside tabs has its own clickable tab and raises its whole v
   const last = h.window("last");
   split.appendChild(first.node);
   split.appendChild(last.node);
+  h.tree.cleanTree();
+  assert.equal(tabs.layout, "TABBED");
   h.tree._updateConTab(split);
   assert.ok(split.tab);
   assert.match(split.tab.get_child_at_index(1).label, /\(\+1\)/);
   h.wm._raiseGroupMembers(first.node);
   assert.ok(last.calls.includes("raise"));
   assert.equal(first.calls.at(-1), "raise");
+});
+
+for (const [action, before, after] of [
+  ["LayoutTabbedToggle", "STACKED", "TABBED"],
+  ["LayoutStackedToggle", "TABBED", "STACKED"],
+])
+  test(`${action} inside a split member changes its existing outer group`, () => {
+    const h = harness();
+    const monitor = h.monitor(),
+      outer = h.group(before),
+      split = h.group("HSPLIT");
+    monitor.appendChild(outer);
+    outer.appendChild(split);
+    const first = h.window("terminal"),
+      last = h.window("files");
+    split.appendChild(first.node);
+    split.appendChild(last.node);
+    h.booleans.set("tabbed-tiling-mode-enabled", true);
+    h.booleans.set("stacked-tiling-mode-enabled", true);
+    h.focus(first.meta);
+    h.wm.renderTree = () => h.tree.normalizeGroups();
+    h.wm._raiseGroupMembers = () => {};
+    h.wm.command({ name: action });
+    assert.equal(outer.layout, after);
+    assert.equal(split.layout, "HSPLIT");
+    assert.equal(first.node.parentNode, split);
+    assert.equal(last.node.parentNode, split);
+    assert.equal(
+      h.tree.getNodeByLayout("TABBED").length + h.tree.getNodeByLayout("STACKED").length,
+      1
+    );
+  });
+
+test("nested groups are removed through splits without destroying window tabs or session sizes", () => {
+  const h = harness();
+  const monitor = h.monitor();
+  const outer = h.group("TABBED");
+  const split = h.group("HSPLIT");
+  const inner = h.group("TABBED");
+  const independent = h.group("STACKED");
+  monitor.appendChild(outer);
+  monitor.appendChild(independent);
+  outer.percent = 0.65;
+  independent.percent = 0.35;
+  outer.appendChild(split);
+  split.appendChild(inner);
+  inner.percent = 0.6;
+  const terminal = h.window("terminal"),
+    files = h.window("files"),
+    unrelated = h.window("unrelated");
+  inner.appendChild(terminal.node);
+  inner.decoration.add_child(terminal.node.tab);
+  split.appendChild(files.node);
+  files.node.percent = 0.4;
+  independent.appendChild(unrelated.node);
+  const bar = inner.decoration;
+  const tab = terminal.node.tab;
+  h.tree.attachNode = inner;
+  h.tree.normalizeGroups();
+  assert.deepEqual([...split.childNodes], [terminal.node, files.node]);
+  assert.equal(split.parentNode, outer);
+  assert.equal(outer.layout, "TABBED");
+  assert.equal(independent.layout, "STACKED");
+  assert.deepEqual(
+    [outer.percent, independent.percent, terminal.node.percent, files.node.percent],
+    [0.65, 0.35, 0.6, 0.4]
+  );
+  assert.equal(terminal.node.tab, tab);
+  assert.equal(tab.destroyed, undefined);
+  assert.equal(terminal.actor.destroyed, undefined);
+  assert.equal(bar.destroyed, true);
+  assert.equal(h.tree.attachNode, split);
+  h.tree.normalizeGroups();
+  assert.deepEqual([...split.childNodes], [terminal.node, files.node]);
+});
+
+for (const outerLayout of ["TABBED", "STACKED"])
+  test(`center drop onto a split inside ${outerLayout} joins the outer group with a matching preview`, () => {
+    const h = harness();
+    const monitor = h.monitor();
+    const outer = h.group(outerLayout),
+      split = h.group("HSPLIT");
+    monitor.appendChild(outer);
+    outer.appendChild(split);
+    outer.rect = { x: 0, y: 0, width: 1000, height: 500 };
+    const hovered = h.window("terminal"),
+      other = h.window("files"),
+      dragged = h.window("dragged");
+    split.appendChild(hovered.node);
+    split.appendChild(other.node);
+    monitor.appendChild(dragged.node);
+    dragged.node.mode = "GRAB_TILE";
+    dragged.node.previewHint = new h.context.St.Bin();
+    h.wm.nodeWinAtPointer = hovered.node;
+    h.wm.getPointer = () => [250, 250];
+    h.settings.get_string = () => "tabbed";
+    h.booleans.set("preview-hint-enabled", true);
+    h.wm.moveWindowToPointer(dragged.node, true);
+    const preview = dragged.node.previewHint;
+    assert.deepEqual(
+      { x: preview.x, y: preview.y, width: preview.width, height: preview.height },
+      outer.rect
+    );
+    h.wm.moveWindowToPointer(dragged.node);
+    assert.equal(dragged.node.parentNode, outer);
+    assert.equal(hovered.node.parentNode, split);
+    assert.equal(other.node.parentNode, split);
+    assert.equal(
+      outer.getNodeByLayout("TABBED").length + outer.getNodeByLayout("STACKED").length,
+      1
+    );
+  });
+
+test("splitting a tab member keeps its original node and can wrap a whole split subtree", () => {
+  const h = harness();
+  const monitor = h.monitor(),
+    tabs = h.group("TABBED");
+  monitor.appendChild(tabs);
+  const first = h.window("terminal"),
+    last = h.window("files");
+  tabs.appendChild(first.node);
+  tabs.appendChild(last.node);
+  const originalTab = first.node.tab;
+  h.tree.split(first.node, "HORIZONTAL", true);
+  const split = first.node.parentNode;
+  assert.equal(split.layout, "HSPLIT");
+  assert.equal(split.parentNode, tabs);
+  assert.equal(split.childNodes[0], first.node);
+  assert.equal(first.node.tab, originalTab);
+  h.tree.split(split, "VERTICAL", true);
+  assert.equal(split.parentNode.layout, "VSPLIT");
+  assert.equal(split.parentNode.parentNode, tabs);
+  assert.equal(first.node.parentNode, split);
+  assert.deepEqual([...h.tree.nodeWindows], [last.node, first.node]);
 });
 
 test("#570: a growing window waits for its shrinking neighbour to vacate the destination", () => {
@@ -923,4 +1063,75 @@ test("#582: disable disconnects settings and the actor of a window no longer lis
   assert.deepEqual(calls, [7, 8]);
   assert.equal(h.wm._windowActors.size, 0);
   assert.equal(h.wm._signalsBound, false);
+});
+
+test("a single-window tab group hides its bar and reclaims height with auto-exit disabled", () => {
+  const h = harness();
+  h.booleans.set("auto-exit-tabbed", false);
+  const workspace = h.group("HSPLIT", "WS", "ws0");
+  h.tree.appendChild(workspace);
+  const monitor = h.monitor();
+  workspace.appendChild(monitor);
+  const group = h.group("TABBED");
+  monitor.appendChild(group);
+  const first = h.window("first");
+  const second = h.window("second");
+  group.appendChild(first.node);
+  group.appendChild(second.node);
+  const render = () => {
+    h.tree.processNode(monitor);
+    h.context.WindowManager.prototype.updateDecorationLayout.call(h.wm);
+  };
+  render();
+  assert.equal(group.decoration.visible, true);
+  assert.equal(first.node.rect.y, group.rect.y + h.tree.defaultStackHeight);
+  assert.equal(h.tree.minSizeOf(group, "VERTICAL"), 135);
+  h.tree.removeNode(second.node);
+  render();
+  assert.equal(group.layout, "TABBED");
+  assert.equal(group.decoration.visible, false);
+  assert.equal(group.decoration.height, 0);
+  assert.equal(first.node.rect.y, group.rect.y);
+  assert.equal(first.node.rect.height, group.rect.height);
+  assert.equal(h.tree.minSizeOf(group, "VERTICAL"), 100);
+  group.appendChild(h.window("replacement").node);
+  render();
+  assert.equal(group.decoration.visible, true);
+  assert.equal(first.node.rect.height, group.rect.height - h.tree.defaultStackHeight);
+});
+
+test("a tab holding a split with two windows keeps its bar and grouping", () => {
+  const h = harness();
+  const monitor = h.monitor();
+  const group = h.group("TABBED");
+  const split = h.group("HSPLIT");
+  monitor.appendChild(group);
+  group.appendChild(split);
+  split.appendChild(h.window("one").node);
+  split.appendChild(h.window("two").node);
+  group.resetLayoutSingleChild();
+  h.tree.processNode(monitor);
+  assert.equal(group.layout, "TABBED");
+  assert.equal(group.groupWindowCount(), 2);
+  assert.equal(group.decoration.visible, true);
+  assert.equal(split.rect.y, group.rect.y + h.tree.defaultStackHeight);
+});
+
+test("tab bars count minimized and dragged windows, excluding floated and dead windows", () => {
+  const h = harness();
+  const group = h.group("TABBED");
+  const first = h.window("first");
+  const second = h.window("second");
+  group.appendChild(first.node);
+  group.appendChild(second.node);
+  second.meta.minimized = true;
+  assert.equal(group.groupWindowCount(), 2);
+  second.node.mode = "GRAB_TILE";
+  assert.equal(group.groupWindowCount(), 2);
+  second.node.mode = "FLOAT";
+  assert.equal(group.groupWindowCount(), 1);
+  second.node.mode = "TILE";
+  second.die();
+  second.actor.destroy();
+  assert.equal(group.groupWindowCount(), 1);
 });

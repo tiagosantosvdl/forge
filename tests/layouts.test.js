@@ -247,12 +247,12 @@ test("reconnecting arbitrary monitor sets restores monitor, workspace and groupi
   assert.deepEqual(restored, original);
 });
 
-test("restoration moves saved groups from unavailable workspaces to the last workspace", () => {
+test("display reconfiguration moves saved groups from unavailable workspaces to the last workspace", () => {
   const h = harness(2);
   h.activate(["A"]);
   const node = h.add("teams");
   h.controller.profile = h.saved("A", 7, "teams");
-  h.controller.apply();
+  h.controller.apply({ relocate: true });
   assert.deepEqual(h.location(node), [0, 1]);
   assert.equal(h.tree.nodeWindows.length, 1);
 });
@@ -321,7 +321,7 @@ for (const direction of ["HSPLIT", "VSPLIT"])
         );
       assert.deepEqual(saved(), expected);
       for (const key of order.slice(1)) {
-        const node = h.add(key, 0);
+        const node = h.add(key, 1);
         opened.set(key, node);
         h.controller.windowTracked(node.nodeValue);
         h.controller.cancel("restoreSource");
@@ -346,11 +346,11 @@ for (const direction of ["HSPLIT", "VSPLIT"])
 test("missing apps reopen in their saved group after other apps have restored", () => {
   const h = harness();
   h.activate(["A", "B"]);
-  const teams = h.add("teams");
+  const teams = h.add("teams", 1, 2);
   h.controller.profile = h.saved("B", 2, "teams", "calendar");
   h.controller.apply();
   h.controller.rendered();
-  const calendar = h.add("calendar");
+  const calendar = h.add("calendar", 1, 2);
   h.controller.windowTracked(calendar.nodeValue);
   h.controller.restoreWindows();
   assert.deepEqual(h.location(calendar), [1, 2]);
@@ -368,7 +368,7 @@ test("tabs survive destruction of a source group rebuilt after the destination",
   group.appendChild(node);
   group.decoration.add_child(node.tab);
   h.controller.profile = h.saved("A", 0, "teams");
-  h.controller.apply();
+  h.controller.apply({ relocate: true });
   assert.equal(group.decoration.destroyed, true);
   assert.equal(node.tab.destroyed, undefined);
   assert.deepEqual(h.location(node), [0, 0]);
@@ -419,7 +419,7 @@ test("opening on another monitor preserves live groups and session sizes despite
   assert.deepEqual(h.errors, []);
 });
 
-test("reopening a tab preserves both destination and provisional source split sizes", () => {
+test("reopening a local tab preserves destination and unrelated monitor split sizes", () => {
   const h = harness();
   h.activate(["A", "B"]);
   const editor = h.add("editor");
@@ -446,10 +446,10 @@ test("reopening a tab preserves both destination and provisional source split si
   terminal.percent = 0.3;
   group.percent = 0.65;
   browser.percent = 0.35;
-  const opened = h.add("calendar");
+  const opened = h.add("calendar", 1);
   h.controller.windowTracked(opened.nodeValue);
-  // trackWindow clears the provisional parent's shares after notifying Layouts.
-  h.tree.resetSiblingPercent(source);
+  // Window tracking resets the shares on the monitor where it opened.
+  h.tree.resetSiblingPercent(group.parentNode);
   h.controller.restoreWindows();
   assert.equal(teams.parentNode, group);
   assert.equal(opened.parentNode, group);
@@ -484,7 +484,7 @@ test("new windows of an open app join its live slot without moving its siblings"
   browser.percent = 0.6;
   editor.percent = 0.4;
   const monitor = browser.parentNode;
-  const opened = h.add("browser");
+  const opened = h.add("browser", 1);
   h.controller.windowTracked(opened.nodeValue);
   h.controller.restoreWindows();
   const group = browser.parentNode;
@@ -494,7 +494,7 @@ test("new windows of an open app join its live slot without moving its siblings"
   assert.deepEqual([group.percent, editor.percent], [0.6, 0.4]);
   assert.equal(opened.parentNode, group);
   assert.deepEqual(h.location(opened), [1, 0]);
-  const another = h.add("browser");
+  const another = h.add("browser", 1);
   h.controller.windowTracked(another.nodeValue);
   h.controller.restoreWindows();
   assert.equal(another.parentNode, group);
@@ -522,7 +522,7 @@ test("adding another window of the same app preserves resized columns on its mon
 test("reopening an empty nested group retains saved direction and sibling order", () => {
   const h = harness();
   h.activate(["A", "B"]);
-  const right = h.add("right", 1);
+  const right = h.add("right", 1, 2);
   h.controller.profile = {
     monitors: [
       {
@@ -543,14 +543,14 @@ test("reopening an empty nested group retains saved direction and sibling order"
     ],
   };
   h.controller.apply();
-  const opened = h.add("bottom");
+  const opened = h.add("bottom", 1, 2);
   h.controller.windowTracked(opened.nodeValue);
   h.controller.restoreWindows();
   const group = opened.parentNode;
   assert.equal(group.layout, "VSPLIT");
   assert.deepEqual([...group.parentNode.childNodes], [group, right]);
   assert.deepEqual(h.location(opened), [1, 2]);
-  const top = h.add("top");
+  const top = h.add("top", 1, 2);
   h.controller.windowTracked(top.nodeValue);
   h.controller.restoreWindows();
   assert.equal(top.parentNode, group);
@@ -577,7 +577,7 @@ test("apps reopening into a split collapsed for a small display stay in its tabs
   assert.deepEqual(h.errors, []);
 });
 
-test("regular Edge windows share the last focused slot without accumulating containers", () => {
+test("regular Edge windows retain independent monitor and workspace slots", () => {
   const h = harness();
   h.activate(["A", "B"]);
   const one = h.add("microsoft-edge", 0, 0);
@@ -590,9 +590,9 @@ test("regular Edge windows share the last focused slot without accumulating cont
   h.controller.apply();
   h.controller.rendered();
   assert.equal(JSON.stringify(h.controller.profile), before);
-  assert.equal(one.parentNode, two.parentNode);
-  assert.equal(one.parentNode.layout, "TABBED");
-  assert.deepEqual(h.location(one), [1, 1]);
+  assert.notEqual(one.parentNode, two.parentNode);
+  assert.deepEqual(h.location(one), [0, 0]);
+  assert.deepEqual(h.location(two), [1, 1]);
 });
 
 test("saved layouts reload across sessions including unopened apps", () => {
@@ -603,6 +603,100 @@ test("saved layouts reload across sessions including unopened apps", () => {
   h.controller.write();
   const restored = h.reload();
   assert.deepEqual(JSON.parse(JSON.stringify(restored.state)), JSON.parse(h.contents()));
+});
+
+test("Terminal and Files restore one shared split tab without a Terminal-only inner group", () => {
+  const h = harness();
+  h.activate(["left", "right"]);
+  const edge = h.add("edge", 1, 1);
+  const firefox = h.add("firefox", 1, 1);
+  h.controller.profile = {
+    monitors: [
+      {
+        id: "right",
+        workspaces: [
+          {
+            index: 1,
+            tree: {
+              layout: "TABBED",
+              children: [
+                { key: "edge" },
+                {
+                  layout: "HSPLIT",
+                  children: [
+                    { layout: "TABBED", children: [{ key: "terminal" }] },
+                    { key: "files" },
+                  ],
+                },
+                { key: "firefox" },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  };
+  h.controller.apply();
+  const terminal = h.add("terminal", 1, 1);
+  h.controller.windowTracked(terminal.nodeValue);
+  h.controller.restoreWindows();
+  const files = h.add("files", 1, 1);
+  h.controller.windowTracked(files.nodeValue);
+  h.controller.restoreWindows();
+  const split = terminal.parentNode;
+  assert.equal(split.layout, "HSPLIT");
+  assert.equal(files.parentNode, split);
+  assert.deepEqual([...split.childNodes], [terminal, files]);
+  assert.equal(split.parentNode, edge.parentNode);
+  assert.equal(firefox.parentNode, edge.parentNode);
+  assert.equal(edge.parentNode.layout, "TABBED");
+  assert.deepEqual(h.location(terminal), [1, 1]);
+  assert.deepEqual(h.location(files), [1, 1]);
+  h.controller.rendered();
+  h.controller.write();
+  const state = h.reload().state;
+  const check = (node, grouped = false) => {
+    const group = ["TABBED", "STACKED"].includes(node.layout);
+    assert.ok(!group || !grouped);
+    for (const child of node.children || []) check(child, grouped || group);
+  };
+  for (const profile of Object.values(state.configurations))
+    for (const monitor of profile.monitors)
+      for (const workspace of monitor.workspaces) check(workspace.tree);
+});
+
+test("additional same-app windows inside a split tab join its outer group", () => {
+  const h = harness();
+  h.activate(["A"]);
+  const browser = h.add("browser");
+  const terminal = h.add("terminal");
+  h.controller.profile = {
+    monitors: [
+      {
+        id: "A",
+        workspaces: [
+          {
+            index: 0,
+            tree: {
+              layout: "TABBED",
+              children: [{ layout: "HSPLIT", children: [{ key: "browser" }, { key: "terminal" }] }],
+            },
+          },
+        ],
+      },
+    ],
+  };
+  h.controller.apply();
+  const outer = browser.groupAncestor();
+  const reopened = h.add("browser");
+  h.controller.windowTracked(reopened.nodeValue);
+  h.controller.restoreWindows();
+  assert.equal(reopened.parentNode, outer);
+  assert.equal(browser.groupAncestor(), outer);
+  assert.equal(terminal.groupAncestor(), outer);
+  assert.equal(outer.getNodeByLayout("TABBED").length, 1);
+  h.controller.apply();
+  assert.equal(h.tree.getNodeByLayout("TABBED").length, 1);
 });
 
 test("stale display callbacks cannot apply after another change or disable", () => {
@@ -642,4 +736,91 @@ test("an active drag defers restoration and protects the last stable profile", (
   h.controller.rendered();
   assert.equal(JSON.stringify(h.controller.state), original);
   assert.equal(h.controller.transitioning, true);
+});
+
+for (const [monitor, workspace] of [
+  [0, 0],
+  [0, 1],
+  [1, 0],
+  [1, 2],
+])
+  test(`new windows use only history at monitor ${monitor}, workspace ${workspace}`, () => {
+    const h = harness();
+    h.activate(["A", "B"]);
+    const remoteMonitor = 1 - monitor;
+    const remoteWorkspace = (workspace + 1) % 3;
+    const remote = h.add("browser", remoteMonitor, remoteWorkspace);
+    h.wm.focusMetaWindow = remote.nodeValue;
+    h.controller.profile = h.saved(remoteMonitor ? "B" : "A", remoteWorkspace, "browser", "editor");
+    const opened = h.add("browser", monitor, workspace);
+    const originalParent = opened.parentNode;
+    opened.nodeValue.change_workspace = () => assert.fail("new window changed workspace");
+    opened.nodeValue.move_to_monitor = () => assert.fail("new window changed monitor");
+    h.controller.windowTracked(opened.nodeValue);
+    h.controller.restoreWindows();
+    assert.equal(opened.parentNode, originalParent);
+    assert.deepEqual(h.location(opened), [monitor, workspace]);
+    assert.notEqual(opened.parentNode, remote.parentNode);
+    h.controller.apply();
+    assert.deepEqual(h.location(opened), [monitor, workspace]);
+    assert.deepEqual(h.location(remote), [remoteMonitor, remoteWorkspace]);
+    assert.deepEqual(h.errors, []);
+  });
+
+test("a peer on another workspace of the same monitor cannot capture a new window", () => {
+  const h = harness();
+  h.activate(["A"]);
+  const remote = h.add("browser", 0, 2);
+  h.controller.profile = h.saved("A", 2, "browser");
+  const opened = h.add("browser", 0, 0);
+  h.controller.windowTracked(opened.nodeValue);
+  h.controller.restoreWindows();
+  assert.notEqual(remote.parentNode, opened.parentNode);
+  assert.deepEqual(h.location(opened), [0, 0]);
+});
+
+test("local history wins over the focused same-app window elsewhere", () => {
+  const h = harness();
+  h.activate(["A", "B"]);
+  const remote = h.add("browser", 0, 2);
+  const editor = h.add("editor", 1, 1);
+  h.controller.profile = h.saved("B", 1, "browser", "editor");
+  h.controller.apply();
+  h.wm.focusMetaWindow = remote.nodeValue;
+  const opened = h.add("browser", 1, 1);
+  h.controller.windowTracked(opened.nodeValue);
+  h.controller.restoreWindows();
+  assert.equal(opened.parentNode, editor.parentNode);
+  assert.notEqual(opened.parentNode, remote.parentNode);
+  assert.deepEqual(h.location(opened), [1, 1]);
+});
+
+test("saving and reloading retains the same app in every monitor and workspace", () => {
+  const h = harness();
+  h.activate(["A", "B"]);
+  const nodes = [];
+  for (const monitor of [0, 1])
+    for (const workspace of [0, 1, 2]) nodes.push(h.add("browser", monitor, workspace));
+  h.wm.focusMetaWindow = nodes[0].nodeValue;
+  h.controller.rendered();
+  h.controller.write();
+  const profile = h.reload().state.configurations[h.controller.key];
+  const keys = (node) => (node.key ? [node.key] : node.children.flatMap(keys));
+  for (const monitor of profile.monitors)
+    for (const ws of monitor.workspaces) assert.deepEqual(Array.from(keys(ws.tree)), ["browser"]);
+  h.controller.apply();
+  for (let i = 0; i < nodes.length; i++)
+    assert.deepEqual(h.location(nodes[i]), [Math.floor(i / 3), i % 3]);
+});
+
+test("initial restoration ignores history from a removed workspace", () => {
+  const h = harness(2);
+  h.activate(["A"]);
+  const teams = h.add("teams", 0, 1);
+  const editor = h.add("editor", 0, 1);
+  h.controller.profile = h.saved("A", 7, "teams", "editor");
+  h.controller.apply();
+  assert.equal(teams.parentNode.nodeType, "MONITOR");
+  assert.equal(editor.parentNode, teams.parentNode);
+  assert.deepEqual(h.location(teams), [0, 1]);
 });

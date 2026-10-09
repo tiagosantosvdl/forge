@@ -11,7 +11,7 @@ This fork is 100% maintained using OpenAI Codex.
 This fork adds remembered layouts across sessions and display changes, fixes
 window dragging and restoration, and incorporates fixes from 34 upstream pull
 requests. Adapted fixes carry comments identifying the PR submitters and numbers.
-They cover resizing and minimum sizes, nested and tabbed groups, focus borders,
+They cover resizing and minimum sizes, split members in tabbed groups, focus borders,
 window lifetime and signal cleanup, floating rules, and configuration recovery.
 
 The extension declares compatibility with GNOME Shell 45–51 and supports X11 and
@@ -22,6 +22,12 @@ GNOME Shell validation of the latest upstream fixes is still pending. Repository
 changes take effect in an installed extension only after rebuilding, installing,
 and reloading it.
 
+Version 22.51.8 keeps newly opened windows on their opening monitor and workspace,
+uses placement history only within that location, and hides tab bars when a group
+has only one window left. It also prevents nested tabbed and stacked groups while
+retaining splits inside tabs. Existing saved layouts are migrated without changing
+monitor or workspace assignments; reconnecting displays can still restore existing
+windows to their saved locations.
 Version 22.51.6 keeps tab icons matched to their windows and refreshes titles and
 available app icons as they change, including while dragging or reshuffling groups.
 Version 22.51.5 preserves saved split directions and group order while apps
@@ -32,7 +38,7 @@ from 22.51.4 remain supported.
 ## Features
 
 - Horizontal and vertical split containers with adjustable proportions
-- Tabbed and stacked groups, including nested groups
+- Tabbed and stacked groups with split members, without nested groups
 - Tab titles and app icons that update when window metadata changes
 - Mouse drag and drop with grouping previews
 - Keyboard navigation, moving, swapping, and resizing
@@ -50,8 +56,14 @@ in `$XDG_STATE_HOME/forge/layouts.json`, normally
 
 Split sizes last for the current session. Restoring a display layout starts with
 equal shares, subject to window minimum sizes; resize ratios in older saved files
-are ignored. Opening a window places it in its app's group without rebuilding
-unrelated groups or changing their sizes.
+are ignored. A new window stays on the monitor and workspace where it opens.
+Its app's saved placement and existing group are used only within that location,
+without rebuilding unrelated groups or changing their sizes. The same app can
+have independent placement histories on different monitors and workspaces.
+
+A tabbed group with only one window hides its tab bar and gives that space back
+to the window, even with automatic exit from tabbed layout disabled. A split
+inside a tab with multiple windows still keeps its group tab.
 
 Each set of active displays has its own saved layout. There are no fixed
 “docked” or “laptop-only” profiles. Displays are identified by hardware identity
@@ -66,7 +78,7 @@ to a previously used configuration restores its saved layout after monitor
 changes settle.
 
 Workspace additions and removals are handled, including renumbering saved
-workspace assignments after removal. If a saved workspace is unavailable, its
+workspace assignments after removal. When reconnecting displays, if a saved workspace is unavailable, its
 groups use the last available workspace; Forge does not create workspaces to
 match saved assignments. GNOME manages switching workspaces and moving windows
 between them.
@@ -74,10 +86,16 @@ between them.
 Windows are matched by window class, falling back to application ID, without
 using their titles. Edge app windows can be distinguished when their window
 class exposes the app and browser profile. Windows with the same identity,
-including ordinary Edge windows, share the last saved slot as tabs. Floating
+including ordinary Edge windows, share the last saved slot within their current
+monitor and workspace as tabs. Floating
 windows are excluded. Slots for apps that have not reopened are retained so they
 can join their previous groups later. Partially reopened sessions retain the
 saved split direction and group order, including temporarily empty groups.
+
+Groups can contain splits, but cannot contain other tabbed or stacked groups,
+even through a split. Older saved layouts are migrated by lifting a nested
+group's members into its immediate parent, preserving split directions and app
+order, including apps that have not reopened yet.
 
 This feature remembers placement and grouping; it does not launch apps or
 restore browser tabs. To reset it, disable Forge, remove `layouts.json`, and
@@ -88,8 +106,8 @@ enable Forge again.
 Forge identifies apps from their desktop entries and window identity, including
 Edge apps, and refreshes tabs when GNOME updates that identity. Titles update as
 apps change them, including unread counts in window titles. App icon changes and
-changes to local icon files also refresh the tabs. These updates apply to nested
-group tabs and do not rearrange windows or save a new layout.
+changes to local icon files also refresh the tabs. These updates apply to split
+member tabs and do not rearrange windows or save a new layout.
 
 On current GNOME, browser favicons and notification badges drawn by an app may
 not be exposed to Forge; tabs use the app icon available through GNOME.
@@ -102,7 +120,7 @@ Download the ZIP or Debian package from
 Install the ZIP for your user:
 
 ```bash
-gnome-extensions install --force forge@tiagosantosvdl.github.io-22.51.6.zip
+gnome-extensions install --force forge@tiagosantosvdl.github.io-22.51.8.zip
 ```
 
 Log out and back in, then enable Forge in Extension Manager or with
@@ -113,7 +131,7 @@ these GitHub releases.
 On Debian or Ubuntu with GNOME Shell 45–51, install the system-wide package:
 
 ```bash
-sudo apt install ./gnome-shell-extension-forge_22.51.6_all.deb
+sudo apt install ./gnome-shell-extension-forge_22.51.8_all.deb
 ```
 
 Log out and back in, then enable Forge. A user-local installation with this
@@ -155,7 +173,7 @@ gnome-extensions prefs forge@tiagosantosvdl.github.io
 
 The release workflow runs checks, builds both packages, and attaches them plus
 `SHA256SUMS` to a GitHub Release when a `vMAJOR.MINOR.PATCH` tag is pushed.
-The tag must match `package.json`. Prerelease tags such as `v22.51.6-rc.1` are
+The tag must match `package.json`. Prerelease tags such as `v22.51.8-rc.1` are
 also supported and produce GitHub prereleases.
 
 For each release, update the version in `package.json`, both root version fields
@@ -163,8 +181,8 @@ in `package-lock.json`, and `version-name` in `metadata.json` (use a space in
 place of the prerelease hyphen for GNOME). Commit the changes, then tag and push:
 
 ```bash
-git tag -a v22.51.6 -m "Forge 22.51.6"
-git push origin main v22.51.6
+git tag -a v22.51.8 -m "Forge 22.51.8"
+git push origin main v22.51.8
 ```
 
 Publishing a release manually also builds and attaches the packages. Running
@@ -174,8 +192,8 @@ without publishing a release.
 Build the same packages locally with `make release`. This additionally needs
 Python 3 and `dpkg-deb` (from `dpkg`). Outputs are under `dist/`:
 
-- `forge@tiagosantosvdl.github.io-22.51.6.zip` for per-user installation
-- `gnome-shell-extension-forge_22.51.6_all.deb` for system-wide installation
+- `forge@tiagosantosvdl.github.io-22.51.8.zip` for per-user installation
+- `gnome-shell-extension-forge_22.51.8_all.deb` for system-wide installation
 - `SHA256SUMS` for verification with `cd dist && sha256sum -c SHA256SUMS`
 
 The Debian package is architecture-independent and requires a supported GNOME

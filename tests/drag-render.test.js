@@ -360,6 +360,8 @@ test("a delayed focus callback cannot unfreeze a drag that started after focus",
   const meta = {
     get_title: () => "test window",
     get_window_type: () => 0,
+    get_monitor: () => 0,
+    get_workspace: () => ({ index: () => 0 }),
     get_compositor_private: () => actor,
     connect(name, callback) {
       callbacks.set(name, callback);
@@ -457,6 +459,8 @@ function createRestoreHarness(autoSplit = true) {
   const restored = {
     get_title: () => "Restored Edge window",
     get_window_type: () => 0,
+    get_monitor: () => 0,
+    get_workspace: () => ({ index: () => 0 }),
     get_compositor_private: () => actor,
     windowSignals: [],
   };
@@ -513,9 +517,12 @@ test("opening on another monitor never auto-splits the focused window's group", 
   h.tree.appendChild(monitor);
   const findNode = h.tree.findNode.bind(h.tree);
   h.tree.findNode = (value) => (value === "mo1ws0" ? monitor : findNode(value));
-  h.context.global.display.get_current_monitor = () => 1;
+  h.restored.get_monitor = () => 1;
+  // The pointer is on a different monitor; the actual window location wins.
+  h.context.global.display.get_current_monitor = () => 0;
   const createNode = h.tree.createNode;
   h.tree.createNode = (...args) => {
+    assert.equal(args[0], "mo1ws0");
     const node = createNode(...args);
     monitor.appendChild(node);
     return node;
@@ -570,4 +577,30 @@ test("new windows are tracked normally when automatic splitting is disabled", ()
   h.wm.trackWindow(null, h.restored);
   assert.equal(h.splits.length, 0);
   assert.ok(h.tree.findNode(h.restored));
+});
+
+test("a background-workspace window uses its own workspace instead of the active one", () => {
+  const h = createRestoreHarness();
+  const focused = h.tree.firstChild;
+  const monitor = Object.assign(Object.create(h.context.Node.prototype), {
+    _type: "MONITOR",
+    _data: "mo0ws1",
+    _nodes: [],
+    layout: "HSPLIT",
+  });
+  h.tree.appendChild(monitor);
+  const findNode = h.tree.findNode.bind(h.tree);
+  h.tree.findNode = (value) => (value === "mo0ws1" ? monitor : findNode(value));
+  h.restored.get_workspace = () => ({ index: () => 1 });
+  const createNode = h.tree.createNode;
+  h.tree.createNode = (...args) => {
+    assert.equal(args[0], "mo0ws1");
+    const node = createNode(...args);
+    monitor.appendChild(node);
+    return node;
+  };
+  h.wm.trackWindow(null, h.restored);
+  assert.equal(h.splits.length, 0);
+  assert.equal(focused.parentNode, h.tree);
+  assert.equal(h.tree.findNode(h.restored).parentNode, monitor);
 });

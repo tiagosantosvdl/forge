@@ -29,6 +29,91 @@ const external = {
   ],
 };
 
+function assertNoNestedGroups(tree, grouped = false) {
+  const group = tree.layout === "TABBED" || tree.layout === "STACKED";
+  assert.ok(!group || !grouped, "A group must not have another group ancestor");
+  for (const child of tree.children || []) assertNoNestedGroups(child, grouped || group);
+}
+
+for (const outer of ["TABBED", "STACKED"])
+  for (const inner of ["TABBED", "STACKED"])
+    for (const split of [null, "HSPLIT", "VSPLIT"])
+      test(`legacy ${inner} inside ${outer} through ${
+        split || "no split"
+      } loses only nested groups`, () => {
+        const nested = { layout: inner, children: [leaf("terminal"), leaf("files")] };
+        const saved = {
+          layout: outer,
+          splitLayout: "VSPLIT",
+          children: [
+            leaf("edge"),
+            split ? { layout: split, children: [nested, leaf("viewer")] } : nested,
+            leaf("firefox"),
+          ],
+        };
+        const before = JSON.stringify(saved);
+        const profile = { monitors: [monitor("A", saved, 2)] };
+        const loaded = context.readState({ version: 1, configurations: { '["A"]': profile } });
+        const tree = loaded.configurations['["A"]'].monitors[0].workspaces[0].tree;
+        assertNoNestedGroups(tree);
+        assert.equal(tree.layout, outer);
+        assert.equal(tree.splitLayout, "VSPLIT");
+        if (split) assert.equal(tree.children[1].layout, split);
+        assert.deepEqual(
+          Array.from(context.layoutKeys(tree)),
+          split
+            ? ["edge", "terminal", "files", "viewer", "firefox"]
+            : ["edge", "terminal", "files", "firefox"]
+        );
+        assert.deepEqual(plain(context.normalizeLayout(tree)), plain(tree));
+        assert.equal(JSON.stringify(saved), before);
+        assert.equal(loaded.configurations['["A"]'].monitors[0].workspaces[0].index, 2);
+      });
+
+test("a small display makes split members separate outer tabs without nesting", () => {
+  const saved = {
+    layout: "TABBED",
+    children: [
+      leaf("browser"),
+      group(leaf("terminal"), { layout: "VSPLIT", children: [leaf("files"), leaf("viewer")] }),
+    ],
+  };
+  const fitted = context.fitLayout(saved, 700, 900, () => ({ width: 400, height: 300 }));
+  assertNoNestedGroups(fitted);
+  assert.equal(fitted.layout, "TABBED");
+  assert.deepEqual(plain(fitted.children), [
+    leaf("browser"),
+    leaf("terminal"),
+    leaf("files"),
+    leaf("viewer"),
+  ]);
+});
+
+test("saving missing apps cannot bring back nested tabs after a live group changes", () => {
+  const previous = {
+    monitors: [
+      monitor("A", {
+        layout: "TABBED",
+        children: [
+          leaf("browser"),
+          group({ layout: "TABBED", children: [leaf("terminal"), leaf("files")] }),
+        ],
+      }),
+    ],
+  };
+  const current = {
+    monitors: [
+      monitor("A", { layout: "TABBED", children: [leaf("browser"), group(leaf("terminal"))] }),
+    ],
+  };
+  const merged = context.mergeProfile(previous, current);
+  const tree = merged.monitors[0].workspaces[0].tree;
+  assertNoNestedGroups(tree);
+  assert.deepEqual(Array.from(context.layoutKeys(tree)), ["browser", "terminal", "files"]);
+  const migrated = context.migrateProfile(merged, [{ id: "C", primary: true }]);
+  assertNoNestedGroups(migrated.monitors[0].workspaces[0].tree);
+});
+
 test("configuration identity ignores monitor order, geometry and workspace count", () => {
   assert.equal(
     context.configurationKey(displays),
@@ -122,13 +207,13 @@ test("saving a partially reopened session keeps missing apps in their saved grou
   ]);
 });
 
-test("moving a live app removes its former slot on another monitor and workspace", () => {
+test("moving a live app preserves independent history on another monitor and workspace", () => {
   const previous = { monitors: [monitor("A", group(leaf("teams")), 2), monitor("B", group())] };
   const current = { monitors: [monitor("A", group()), monitor("B", group(leaf("teams")), 1)] };
   const merged = context.mergeProfile(previous, current);
   assert.equal(
     merged.monitors[0].workspaces.flatMap((ws) => context.layoutKeys(ws.tree)).length,
-    0
+    1
   );
   assert.deepEqual(Array.from(context.layoutKeys(merged.monitors[1].workspaces[0].tree)), [
     "teams",
@@ -239,4 +324,40 @@ test("invalid and excessively deep saved layouts are ignored", () => {
   for (let i = 0; i < 30; i++) deep = group(deep);
   assert.equal(context.validateLayout(deep), false);
   assert.deepEqual(plain(context.readState({ version: 99 })), { version: 1, configurations: {} });
+});
+
+test("placement history in another workspace survives saving a local window of the same app", () => {
+  const previous = {
+    monitors: [monitor("A", { layout: "TABBED", children: [leaf("browser"), leaf("editor")] }, 2)],
+  };
+  const current = { monitors: [monitor("A", group(leaf("browser")), 0)] };
+  const merged = context.mergeProfile(previous, current);
+  assert.deepEqual(
+    Array.from(context.layoutKeys(merged.monitors[0].workspaces.find((ws) => ws.index === 2).tree)),
+    ["browser", "editor"]
+  );
+  assert.deepEqual(
+    Array.from(context.layoutKeys(merged.monitors[0].workspaces.find((ws) => ws.index === 0).tree)),
+    ["browser"]
+  );
+});
+
+test("fitting a singleton tab does not reserve a tab bar", () => {
+  const saved = {
+    layout: "VSPLIT",
+    children: [{ layout: "TABBED", children: [leaf("one")] }, leaf("two")],
+  };
+  const fitted = context.fitLayout(saved, 500, 200, () => ({ width: 100, height: 100 }));
+  assert.equal(fitted.layout, "VSPLIT");
+  assert.equal(fitted.collapsedSplit, undefined);
+});
+
+test("fitting a same-app tab with two windows reserves its tab bar", () => {
+  const saved = {
+    layout: "VSPLIT",
+    children: [{ layout: "TABBED", children: [{ key: "one", windows: [1, 2] }] }, leaf("two")],
+  };
+  const fitted = context.fitLayout(saved, 500, 200, () => ({ width: 100, height: 100 }));
+  assert.equal(fitted.layout, "TABBED");
+  assert.equal(fitted.collapsedSplit, true);
 });

@@ -253,13 +253,13 @@ test("tracker reassociation refreshes icons even when the window ID does not cha
   assert.equal(h.icon(w.node), "Correct");
 });
 
-test("notification titles refresh window and nested group tabs during a drag", () => {
+test("notification titles refresh window and split member tabs during a drag", () => {
   const h = harness();
   const w = h.window("chat", h.app("Chat"));
   const inner = h.group(w.node),
     outer = h.group(inner);
+  inner.layout = "HSPLIT";
   h.tree._updateConTab(inner);
-  h.tree._updateConTab(outer);
   h.controller.enable();
   h.flush();
   const icon = w.node.tab.get_child_at_index(0).child;
@@ -268,7 +268,8 @@ test("notification titles refresh window and nested group tabs during a drag", (
   w.meta.title = "Chat (3 unread)";
   w.meta.emit("notify::title");
   h.flush();
-  for (const node of [w.node, inner, outer]) assert.equal(h.title(node), "Chat (3 unread)");
+  for (const node of [w.node, inner]) assert.equal(h.title(node), "Chat (3 unread)");
+  assert.equal(outer.getNodeByLayout("TABBED").length, 1);
   assert.equal(w.node.tab.get_child_at_index(0).child, icon);
   assert.equal(w.node.mode, "GRAB_TILE");
   assert.equal(h.wm._freezeRender, true);
