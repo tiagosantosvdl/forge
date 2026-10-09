@@ -22,7 +22,7 @@ GNOME Shell validation of the latest upstream fixes is still pending. Repository
 changes take effect in an installed extension only after rebuilding, installing,
 and reloading it.
 
-Version 22.51.8 keeps newly opened windows on their opening monitor and workspace,
+Version 22.51.9 keeps newly opened windows on their opening monitor and workspace,
 uses placement history only within that location, and hides tab bars when a group
 has only one window left. It also prevents nested tabbed and stacked groups while
 retaining splits inside tabs. Existing saved layouts are migrated without changing
@@ -120,23 +120,23 @@ Download the ZIP or Debian package from
 Install the ZIP for your user:
 
 ```bash
-gnome-extensions install --force forge@tiagosantosvdl.github.io-22.51.8.zip
+gnome-extensions install --force forge@tiagosantosvdl.github.com-22.51.9.zip
 ```
 
 Log out and back in, then enable Forge in Extension Manager or with
-`gnome-extensions enable forge@tiagosantosvdl.github.io`. The ZIP uses GNOME's
+`gnome-extensions enable forge@tiagosantosvdl.github.com`. The ZIP uses GNOME's
 standard extension format; Extension Manager's browse catalog is separate from
 these GitHub releases.
 
 On Debian or Ubuntu with GNOME Shell 45–51, install the system-wide package:
 
 ```bash
-sudo apt install ./gnome-shell-extension-forge_22.51.8_all.deb
+sudo apt install ./gnome-shell-extension-forge-tiagosantosvdl_22.51.9_all.deb
 ```
 
 Log out and back in, then enable Forge. A user-local installation with this
 fork's UUID takes precedence over the system-wide package; uninstall that local
-copy with `gnome-extensions uninstall forge@tiagosantosvdl.github.io` before
+copy with `gnome-extensions uninstall forge@tiagosantosvdl.github.com` before
 switching to the Debian package.
 
 ### Build from source
@@ -151,12 +151,12 @@ From a checkout:
 make build
 make install
 # After reloading GNOME Shell, enable Forge if needed:
-gnome-extensions enable forge@tiagosantosvdl.github.io
+gnome-extensions enable forge@tiagosantosvdl.github.com
 ```
 
 `make install` copies the existing build from `temp/` into
-`~/.local/share/gnome-shell/extensions/forge@tiagosantosvdl.github.io`; it does not build it.
-This fork uses `forge@tiagosantosvdl.github.io`, distinct from upstream's
+`~/.local/share/gnome-shell/extensions/forge@tiagosantosvdl.github.com`; it does not build it.
+This fork uses `forge@tiagosantosvdl.github.com`, distinct from upstream's
 `forge@jmmaranan.com`, so installing it does not replace upstream. Disable the
 upstream extension before enabling this fork so only one tiling manager runs.
 The existing Forge settings and layout files are retained.
@@ -166,14 +166,14 @@ GNOME Shell with Alt+F2, then `r`. Save your work before restarting the session.
 Open extension preferences with:
 
 ```bash
-gnome-extensions prefs forge@tiagosantosvdl.github.io
+gnome-extensions prefs forge@tiagosantosvdl.github.com
 ```
 
 ## Releases
 
 The release workflow runs checks, builds both packages, and attaches them plus
 `SHA256SUMS` to a GitHub Release when a `vMAJOR.MINOR.PATCH` tag is pushed.
-The tag must match `package.json`. Prerelease tags such as `v22.51.8-rc.1` are
+The tag must match `package.json`. Prerelease tags such as `v22.51.9-rc.1` are
 also supported and produce GitHub prereleases.
 
 For each release, update the version in `package.json`, both root version fields
@@ -181,8 +181,8 @@ in `package-lock.json`, and `version-name` in `metadata.json` (use a space in
 place of the prerelease hyphen for GNOME). Commit the changes, then tag and push:
 
 ```bash
-git tag -a v22.51.8 -m "Forge 22.51.8"
-git push origin main v22.51.8
+git tag -a v22.51.9 -m "Forge 22.51.9"
+git push origin main v22.51.9
 ```
 
 Publishing a release manually also builds and attaches the packages. Running
@@ -192,13 +192,15 @@ without publishing a release.
 Build the same packages locally with `make release`. This additionally needs
 Python 3 and `dpkg-deb` (from `dpkg`). Outputs are under `dist/`:
 
-- `forge@tiagosantosvdl.github.io-22.51.8.zip` for per-user installation
-- `gnome-shell-extension-forge_22.51.8_all.deb` for system-wide installation
+Release filenames follow the same convention across these extensions: `<uuid>-<version>.zip`, `gnome-shell-extension-<name>-tiagosantosvdl_<debian-version>_all.deb`, and `SHA256SUMS`. Debian prerelease versions use `~rc.1` where ZIP versions use `-rc.1`.
+
+- `forge@tiagosantosvdl.github.com-22.51.9.zip` for per-user installation
+- `gnome-shell-extension-forge-tiagosantosvdl_22.51.9_all.deb` for system-wide installation
 - `SHA256SUMS` for verification with `cd dist && sha256sum -c SHA256SUMS`
 
 The Debian package is architecture-independent and requires a supported GNOME
 Shell version. Its files live under
-`/usr/share/gnome-shell/extensions/forge@tiagosantosvdl.github.io/`.
+`/usr/share/gnome-shell/extensions/forge@tiagosantosvdl.github.com/`.
 
 ## Keyboard shortcuts
 
@@ -304,7 +306,7 @@ npm test                          # Prettier formatting check
 npm run test:unit                 # Automated regression tests
 python3 -m unittest discover -s tests -p '*test.py'  # Packaging and native preferences tests
 npm run format                    # Apply formatting
-make dist                         # Build forge@tiagosantosvdl.github.io.zip
+make dist                         # Build forge@tiagosantosvdl.github.com.zip
 ```
 
 Native shortcut preferences tests use GJS, GTK 4, libadwaita, GNOME settings

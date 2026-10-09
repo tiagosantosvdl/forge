@@ -36,7 +36,7 @@ class ReleasePackageTest(unittest.TestCase):
 
     def test_installable_payload_and_checksums(self):
         PACKAGER.package(self.build, self.output, "22.51.1")
-        deb = self.output / "gnome-shell-extension-forge_22.51.1_all.deb"
+        deb = self.output / "gnome-shell-extension-forge-tiagosantosvdl_22.51.1_all.deb"
         fields = subprocess.check_output(["dpkg-deb", "--field", str(deb)], text=True)
         self.assertIn("Architecture: all\n", fields)
         self.assertIn("gnome-shell (>= 45~), gnome-shell (<< 52~)", fields)
@@ -44,11 +44,16 @@ class ReleasePackageTest(unittest.TestCase):
         unpacked = self.root / "unpacked"
         subprocess.run(["dpkg-deb", "--extract", str(deb), str(unpacked)], check=True)
         installed = unpacked / "usr/share/gnome-shell/extensions" / self.metadata["uuid"]
-        with ZipFile(next(self.output.glob("*.zip"))) as archive:
+        zip_path = self.output / f"{self.metadata['uuid']}-22.51.1.zip"
+        self.assertEqual(
+            {path.name for path in self.output.iterdir()},
+            {zip_path.name, deb.name, "SHA256SUMS"},
+        )
+        with ZipFile(zip_path) as archive:
             self.assertIn("extension.js", archive.namelist())
             self.assertIn("schemas/gschemas.compiled", archive.namelist())
             metadata = json.loads(archive.read("metadata.json"))
-            self.assertEqual(metadata["uuid"], "forge@tiagosantosvdl.github.io")
+            self.assertEqual(metadata["uuid"], "forge@tiagosantosvdl.github.com")
             self.assertEqual(metadata["version-name"], "22.51.1")
             for name in archive.namelist():
                 self.assertEqual(archive.read(name), (installed / name).read_bytes())
@@ -64,8 +69,9 @@ class ReleasePackageTest(unittest.TestCase):
 
     def test_prerelease_sorts_before_stable(self):
         PACKAGER.package(self.build, self.output, "22.51.1-rc.1")
-        deb = self.output / "gnome-shell-extension-forge_22.51.1~rc.1_all.deb"
+        deb = self.output / "gnome-shell-extension-forge-tiagosantosvdl_22.51.1~rc.1_all.deb"
         self.assertTrue(deb.is_file())
+        self.assertTrue((self.output / f"{self.metadata['uuid']}-22.51.1-rc.1.zip").is_file())
         subprocess.run(["dpkg", "--compare-versions", "22.51.1~rc.1", "lt", "22.51.1"], check=True)
 
     def test_invalid_version_does_not_create_artifacts(self):

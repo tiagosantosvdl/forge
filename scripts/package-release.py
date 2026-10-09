@@ -33,7 +33,8 @@ def package(build_dir, output_dir, version):
     output_dir.mkdir(parents=True, exist_ok=True)
     deb_version = version.replace("-", "~", 1)
     zip_path = output_dir / f"{uuid}-{version}.zip"
-    deb_path = output_dir / f"gnome-shell-extension-forge_{deb_version}_all.deb"
+    release_name = f"gnome-shell-extension-{uuid.split('@', 1)[0]}-tiagosantosvdl"
+    deb_path = output_dir / f"{release_name}_{deb_version}_all.deb"
     with tempfile.TemporaryDirectory(prefix="forge-package-") as temporary:
         root = Path(temporary)
         extension = root / "usr/share/gnome-shell/extensions" / uuid

@@ -2,10 +2,10 @@
   "name": "Forge",
   "description": "Tiling and window manager for GNOME with remembered layouts across sessions and display changes. Report issues at https://github.com/tiagosantosvdl/forge/issues.",
   "gettext-domain": "forge",
-  "uuid": "forge@tiagosantosvdl.github.io",
+  "uuid": "forge@tiagosantosvdl.github.com",
   "settings-schema": "org.gnome.shell.extensions.forge",
   "shell-version": ["45", "46", "47", "48", "49", "50", "51"],
   "session-modes": ["user", "unlock-dialog"],
   "url": "https://github.com/tiagosantosvdl/forge",
-  "version-name": "22.51.8"
+  "version-name": "22.51.9"
 }
