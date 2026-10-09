@@ -22,14 +22,18 @@ GNOME Shell validation of the latest upstream fixes is still pending. Repository
 changes take effect in an installed extension only after rebuilding, installing,
 and reloading it.
 
-Version 22.51.4 keeps split sizes within the current session, restores equal
-shares, and places newly opened windows without rebuilding unrelated groups. It
-also fixes cross-monitor auto-splitting and stray focus-border overlays.
+Version 22.51.6 keeps tab icons matched to their windows and refreshes titles and
+available app icons as they change, including while dragging or reshuffling groups.
+Version 22.51.5 preserves saved split directions and group order while apps
+reopen gradually, preventing a temporarily empty column from collapsing the
+layout into one tabbed group. Session sizing and incremental window restoration
+from 22.51.4 remain supported.
 
 ## Features
 
 - Horizontal and vertical split containers with adjustable proportions
 - Tabbed and stacked groups, including nested groups
+- Tab titles and app icons that update when window metadata changes
 - Mouse drag and drop with grouping previews
 - Keyboard navigation, moving, swapping, and resizing
 - Floating windows and persistent window or application rules
@@ -72,11 +76,23 @@ using their titles. Edge app windows can be distinguished when their window
 class exposes the app and browser profile. Windows with the same identity,
 including ordinary Edge windows, share the last saved slot as tabs. Floating
 windows are excluded. Slots for apps that have not reopened are retained so they
-can join their previous groups later.
+can join their previous groups later. Partially reopened sessions retain the
+saved split direction and group order, including temporarily empty groups.
 
 This feature remembers placement and grouping; it does not launch apps or
 restore browser tabs. To reset it, disable Forge, remove `layouts.json`, and
 enable Forge again.
+
+## Tab titles and icons
+
+Forge identifies apps from their desktop entries and window identity, including
+Edge apps, and refreshes tabs when GNOME updates that identity. Titles update as
+apps change them, including unread counts in window titles. App icon changes and
+changes to local icon files also refresh the tabs. These updates apply to nested
+group tabs and do not rearrange windows or save a new layout.
+
+On current GNOME, browser favicons and notification badges drawn by an app may
+not be exposed to Forge; tabs use the app icon available through GNOME.
 
 ## Installation
 
@@ -86,7 +102,7 @@ Download the ZIP or Debian package from
 Install the ZIP for your user:
 
 ```bash
-gnome-extensions install --force forge@tiagosantosvdl.github.io-22.51.4.zip
+gnome-extensions install --force forge@tiagosantosvdl.github.io-22.51.6.zip
 ```
 
 Log out and back in, then enable Forge in Extension Manager or with
@@ -97,7 +113,7 @@ these GitHub releases.
 On Debian or Ubuntu with GNOME Shell 45–51, install the system-wide package:
 
 ```bash
-sudo apt install ./gnome-shell-extension-forge_22.51.4_all.deb
+sudo apt install ./gnome-shell-extension-forge_22.51.6_all.deb
 ```
 
 Log out and back in, then enable Forge. A user-local installation with this
@@ -139,7 +155,7 @@ gnome-extensions prefs forge@tiagosantosvdl.github.io
 
 The release workflow runs checks, builds both packages, and attaches them plus
 `SHA256SUMS` to a GitHub Release when a `vMAJOR.MINOR.PATCH` tag is pushed.
-The tag must match `package.json`. Prerelease tags such as `v22.51.4-rc.1` are
+The tag must match `package.json`. Prerelease tags such as `v22.51.6-rc.1` are
 also supported and produce GitHub prereleases.
 
 For each release, update the version in `package.json`, both root version fields
@@ -147,8 +163,8 @@ in `package-lock.json`, and `version-name` in `metadata.json` (use a space in
 place of the prerelease hyphen for GNOME). Commit the changes, then tag and push:
 
 ```bash
-git tag -a v22.51.4 -m "Forge 22.51.4"
-git push origin main v22.51.4
+git tag -a v22.51.6 -m "Forge 22.51.6"
+git push origin main v22.51.6
 ```
 
 Publishing a release manually also builds and attaches the packages. Running
@@ -158,8 +174,8 @@ without publishing a release.
 Build the same packages locally with `make release`. This additionally needs
 Python 3 and `dpkg-deb` (from `dpkg`). Outputs are under `dist/`:
 
-- `forge@tiagosantosvdl.github.io-22.51.4.zip` for per-user installation
-- `gnome-shell-extension-forge_22.51.4_all.deb` for system-wide installation
+- `forge@tiagosantosvdl.github.io-22.51.6.zip` for per-user installation
+- `gnome-shell-extension-forge_22.51.6_all.deb` for system-wide installation
 - `SHA256SUMS` for verification with `cd dist && sha256sum -c SHA256SUMS`
 
 The Debian package is architecture-independent and requires a supported GNOME

@@ -291,6 +291,58 @@ test("tabbed groups retain their remembered split direction across persistence a
   assert.equal(group.layout, "VSPLIT");
 });
 
+for (const direction of ["HSPLIT", "VSPLIT"])
+  for (const first of ["firefox", "edge", "whatsapp", "teams", "outlook"])
+    test(`partially reopened ${direction} groups retain their structure when ${first} opens first`, () => {
+      const h = harness();
+      h.activate(["A", "B"]);
+      const keys = ["firefox", "edge", "whatsapp", "teams", "outlook"];
+      const expected = {
+        layout: direction,
+        children: [
+          { layout: "TABBED", children: keys.slice(0, 2).map((key) => ({ key })) },
+          { layout: "TABBED", children: keys.slice(2).map((key) => ({ key })) },
+        ],
+      };
+      h.controller.profile = {
+        monitors: [{ id: "B", workspaces: [{ index: 0, tree: expected }] }],
+      };
+      const order = [first, ...keys.filter((key) => key !== first)];
+      const opened = new Map([[first, h.add(first, 1)]]);
+      h.controller.apply();
+      h.controller.rendered();
+      const saved = () =>
+        JSON.parse(
+          JSON.stringify(
+            h.controller.profile.monitors
+              .find((m) => m.id === "B")
+              .workspaces.find((ws) => ws.index === 0).tree
+          )
+        );
+      assert.deepEqual(saved(), expected);
+      for (const key of order.slice(1)) {
+        const node = h.add(key, 0);
+        opened.set(key, node);
+        h.controller.windowTracked(node.nodeValue);
+        h.controller.cancel("restoreSource");
+        h.controller.restoreWindows();
+        assert.deepEqual(saved(), expected);
+      }
+      const left = opened.get("firefox").parentNode;
+      const right = opened.get("teams").parentNode;
+      assert.notEqual(left, right);
+      assert.equal(left, opened.get("edge").parentNode);
+      assert.equal(right, opened.get("whatsapp").parentNode);
+      assert.equal(right, opened.get("outlook").parentNode);
+      assert.equal(left.parentNode, right.parentNode);
+      assert.equal(left.parentNode.layout, direction);
+      assert.deepEqual([...left.parentNode.childNodes], [left, right]);
+      h.controller.write();
+      const reloaded = h.reload();
+      assert.deepEqual(JSON.parse(JSON.stringify(reloaded.state)), JSON.parse(h.contents()));
+      assert.deepEqual(h.errors, []);
+    });
+
 test("missing apps reopen in their saved group after other apps have restored", () => {
   const h = harness();
   h.activate(["A", "B"]);

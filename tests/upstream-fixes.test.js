@@ -157,7 +157,11 @@ function harness() {
       },
       Source: { remove: (id) => timers.delete(id) },
     },
-    St: { Bin: Actor, BoxLayout: Actor, Button: Actor, Side: { TOP: 0, BOTTOM: 1 } },
+    St: { Bin: Actor, BoxLayout: Actor, Button: Actor, Icon: Actor, Side: { TOP: 0, BOTTOM: 1 } },
+    Shell: {
+      WindowTracker: { get_default: () => ({ get_window_app: () => null }) },
+      AppSystem: { get_default: () => ({ lookup_app: () => null }) },
+    },
     Clutter: { Orientation: { VERTICAL: 1, HORIZONTAL: 0 } },
     Meta: {
       MotionDirection: { LEFT: "LEFT", RIGHT: "RIGHT", UP: "UP", DOWN: "DOWN" },
@@ -210,6 +214,8 @@ function harness() {
   }
   if (fs.existsSync(path.join(root, "lib/extension/mutter-safe.js")))
     load("lib/extension/mutter-safe.js", "isWindowAlive, safeRaise, safeFocus, safeActivate");
+  if (fs.existsSync(path.join(root, "lib/extension/tab-metadata.js")))
+    load("lib/extension/tab-metadata.js", "resolveWindowApp, TabMetadata");
   load("lib/css/index.js", "parse, stringify");
   load("lib/shared/settings.js", "ConfigManager");
   load("lib/shared/theme.js", "ThemeManagerBase");
