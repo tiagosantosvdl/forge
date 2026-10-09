@@ -12,7 +12,7 @@ vm.runInContext(
   context
 );
 const plain = (value) => JSON.parse(JSON.stringify(value));
-const leaf = (key, percent = 0) => ({ key, percent });
+const leaf = (key, percent) => ({ key, ...(percent === undefined ? {} : { percent }) });
 const group = (...children) => ({ layout: "HSPLIT", children });
 const monitor = (id, tree, index = 0) => ({ id, workspaces: [{ index, tree }] });
 const displays = [{ id: "external-A", primary: true }, { id: "external-B" }];
@@ -154,7 +154,7 @@ test("small displays use tabs when saved columns would violate window minimum si
   assert.deepEqual(Array.from(context.layoutKeys(fitted)), ["teams", "calendar", "code"]);
 });
 
-test("large displays retain the saved proportions", () => {
+test("legacy proportions are ignored when fitting restored splits", () => {
   const fitted = context.fitLayout(
     group(leaf("teams", 0.7), leaf("code", 0.3)),
     2000,
@@ -162,8 +162,49 @@ test("large displays retain the saved proportions", () => {
     () => ({ width: 300, height: 200 })
   );
   assert.equal(fitted.layout, "HSPLIT");
-  assert.equal(fitted.children[0].percent, 0.7);
-  assert.equal(fitted.children[1].percent, 0.3);
+  assert.deepEqual(plain(fitted), group(leaf("teams"), leaf("code")));
+  // This split fits equally, even though its old small left share would not.
+  const equalFit = context.fitLayout(
+    group(leaf("teams", 0.1), leaf("code", 0.9)),
+    1000,
+    1000,
+    () => ({ width: 300, height: 200 })
+  );
+  assert.equal(equalFit.layout, "HSPLIT");
+});
+
+test("loading legacy files removes sizing without losing placement or split direction", () => {
+  const profile = {
+    monitors: [
+      monitor(
+        "A",
+        {
+          layout: "HSPLIT",
+          percent: 1,
+          children: [
+            { layout: "TABBED", splitLayout: "VSPLIT", percent: 0.7, children: [leaf("teams", 1)] },
+            leaf("code", 0.3),
+          ],
+        },
+        2
+      ),
+    ],
+  };
+  const before = JSON.stringify(profile);
+  const loaded = context.readState({ version: 1, configurations: { '["A"]': profile } });
+  const tree = loaded.configurations['["A"]'].monitors[0].workspaces[0].tree;
+  assert.equal(JSON.stringify(tree).includes('"percent"'), false);
+  assert.equal(tree.children[0].splitLayout, "VSPLIT");
+  assert.equal(loaded.configurations['["A"]'].monitors[0].workspaces[0].index, 2);
+  assert.equal(JSON.stringify(profile), before);
+  const merged = context.mergeProfile(profile, {
+    monitors: [monitor("A", group(leaf("teams", 0.5)), 2)],
+  });
+  assert.equal(JSON.stringify(merged).includes('"percent"'), false);
+  assert.deepEqual(Array.from(context.layoutKeys(merged.monitors[0].workspaces[0].tree)).sort(), [
+    "code",
+    "teams",
+  ]);
 });
 
 test("configuration round trips keep independent layouts for any active display sets", () => {

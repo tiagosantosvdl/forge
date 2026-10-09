@@ -25,6 +25,14 @@ function harness(workspaceCount = 3) {
       actor.parent = null;
     }
     hide() {}
+    set_size(width, height) {
+      this.width = width;
+      this.height = height;
+    }
+    set_position(x, y) {
+      this.x = x;
+      this.y = y;
+    }
     destroy() {
       this.destroyed = true;
       for (const child of [...this.children]) child.destroy();
@@ -59,8 +67,13 @@ function harness(workspaceCount = 3) {
   const context = vm.createContext({
     TextDecoder,
     GObject: { Object: class {}, registerClass() {} },
-    Utils: { createEnum: (names) => Object.fromEntries(names.map((name) => [name, name])) },
-    Window: { WINDOW_MODES: { TILE: "TILE", FLOAT: "FLOAT" } },
+    Utils: {
+      createEnum: (names) => Object.fromEntries(names.map((name) => [name, name])),
+      orientationFromLayout: (layout) => (layout === "HSPLIT" ? "HORIZONTAL" : "VERTICAL"),
+    },
+    Window: {
+      WINDOW_MODES: { TILE: "TILE", FLOAT: "FLOAT", GRAB_TILE: "GRAB_TILE", DEFAULT: "DEFAULT" },
+    },
     Logger: { debug() {}, info() {}, warn() {}, error: (value) => errors.push(value) },
     St: { Bin: Actor, BoxLayout: Actor },
     Main: {
@@ -116,6 +129,7 @@ function harness(workspaceCount = 3) {
     determineSplitLayout: () => "HSPLIT",
     trackCurrentWindows() {},
     focusMetaWindow: null,
+    calculateGaps: () => 0,
     renderTree() {
       controller.rendered();
     },
@@ -161,6 +175,7 @@ function harness(workspaceCount = 3) {
       _nodes: [],
       _actor: new Actor(),
       mode: "TILE",
+      percent: 0,
       settings,
       tab: new Actor(),
     });
@@ -307,7 +322,7 @@ test("tabs survive destruction of a source group rebuilt after the destination",
   assert.deepEqual(h.location(node), [0, 0]);
 });
 
-test("partially reopened columns retain their original proportions when the remaining app opens", () => {
+test("partially reopened columns use equal shares when the remaining app opens", () => {
   const h = harness();
   h.activate(["A"]);
   const one = h.add("teams");
@@ -322,8 +337,192 @@ test("partially reopened columns retain their original proportions when the rema
   h.controller.windowTracked(two.nodeValue);
   h.controller.restoreWindows();
   assert.equal(one.parentNode, two.parentNode);
-  assert.equal(one.percent, 0.7);
-  assert.equal(two.percent, 0.3);
+  one.parentNode.rect = { x: 0, y: 0, width: 2000, height: 1000 };
+  assert.deepEqual(Array.from(h.tree.computeSizes(one.parentNode, [one, two])), [1000, 1000]);
+});
+
+test("opening on another monitor preserves live groups and session sizes despite stale saved weights", () => {
+  const h = harness();
+  h.activate(["A", "B"]);
+  const left = h.add("left", 1);
+  const right = h.add("right", 1);
+  h.controller.profile = h.saved("B", 0, "left", "right");
+  const saved = h.controller.profile.monitors[0].workspaces[0].tree;
+  saved.layout = "HSPLIT";
+  saved.children[0].percent = 0.5;
+  saved.children[1].percent = 0.17647058823529413;
+  h.controller.apply();
+  const monitor = left.parentNode;
+  left.percent = 0.6;
+  right.percent = 0.4;
+  monitor.rect = { x: 2500, y: 0, width: 2000, height: 1000 };
+  const opened = h.add("new-app", 0);
+  h.controller.windowTracked(opened.nodeValue);
+  h.controller.restoreWindows();
+  assert.equal(left.parentNode, monitor);
+  assert.equal(right.parentNode, monitor);
+  assert.deepEqual([left.percent, right.percent], [0.6, 0.4]);
+  assert.deepEqual(Array.from(h.tree.computeSizes(monitor, [left, right])), [1200, 800]);
+  assert.deepEqual(h.location(opened), [0, 0]);
+  assert.deepEqual(h.errors, []);
+});
+
+test("reopening a tab preserves both destination and provisional source split sizes", () => {
+  const h = harness();
+  h.activate(["A", "B"]);
+  const editor = h.add("editor");
+  const terminal = h.add("terminal");
+  const teams = h.add("teams", 1);
+  const browser = h.add("browser", 1);
+  const tabbed = { layout: "TABBED", children: [{ key: "teams" }, { key: "calendar" }] };
+  h.controller.profile = {
+    monitors: [
+      ...h.saved("A", 0, "editor", "terminal").monitors,
+      {
+        id: "B",
+        workspaces: [
+          { index: 0, tree: { layout: "HSPLIT", children: [tabbed, { key: "browser" }] } },
+        ],
+      },
+    ],
+  };
+  h.controller.profile.monitors[0].workspaces[0].tree.layout = "HSPLIT";
+  h.controller.apply();
+  const source = editor.parentNode;
+  const group = teams.parentNode;
+  editor.percent = 0.7;
+  terminal.percent = 0.3;
+  group.percent = 0.65;
+  browser.percent = 0.35;
+  const opened = h.add("calendar");
+  h.controller.windowTracked(opened.nodeValue);
+  // trackWindow clears the provisional parent's shares after notifying Layouts.
+  h.tree.resetSiblingPercent(source);
+  h.controller.restoreWindows();
+  assert.equal(teams.parentNode, group);
+  assert.equal(opened.parentNode, group);
+  assert.equal(group.decoration.destroyed, undefined);
+  assert.deepEqual([group.percent, browser.percent], [0.65, 0.35]);
+  assert.deepEqual([editor.percent, terminal.percent], [0.7, 0.3]);
+  assert.deepEqual(h.location(opened), [1, 0]);
+  assert.deepEqual(h.errors, []);
+});
+
+test("full restoration resets session sizing and newly saved files omit resize weights", () => {
+  const h = harness();
+  h.activate(["A"]);
+  const one = h.add("one");
+  const two = h.add("two");
+  one.percent = 0.8;
+  two.percent = 0.2;
+  h.controller.rendered();
+  h.controller.write();
+  assert.equal(h.contents().includes('"percent"'), false);
+  assert.deepEqual([one.percent, two.percent], [0.8, 0.2]);
+  h.activate(["A"]);
+  one.parentNode.rect = { x: 0, y: 0, width: 2000, height: 1000 };
+  assert.deepEqual(Array.from(h.tree.computeSizes(one.parentNode, [one, two])), [1000, 1000]);
+});
+
+test("new windows of an open app join its live slot without moving its siblings", () => {
+  const h = harness();
+  h.activate(["A", "B"]);
+  const browser = h.add("browser", 1);
+  const editor = h.add("editor", 1);
+  browser.percent = 0.6;
+  editor.percent = 0.4;
+  const monitor = browser.parentNode;
+  const opened = h.add("browser");
+  h.controller.windowTracked(opened.nodeValue);
+  h.controller.restoreWindows();
+  const group = browser.parentNode;
+  assert.equal(group.layout, "TABBED");
+  assert.equal(group.parentNode, monitor);
+  assert.equal(editor.parentNode, monitor);
+  assert.deepEqual([group.percent, editor.percent], [0.6, 0.4]);
+  assert.equal(opened.parentNode, group);
+  assert.deepEqual(h.location(opened), [1, 0]);
+  const another = h.add("browser");
+  h.controller.windowTracked(another.nodeValue);
+  h.controller.restoreWindows();
+  assert.equal(another.parentNode, group);
+  assert.equal(group.childNodes.length, 3);
+  assert.deepEqual(h.errors, []);
+});
+
+test("adding another window of the same app preserves resized columns on its monitor", () => {
+  const h = harness();
+  h.activate(["A"]);
+  const browser = h.add("browser");
+  const editor = h.add("editor");
+  browser.percent = 0.6;
+  editor.percent = 0.4;
+  const monitor = browser.parentNode;
+  const opened = h.add("browser");
+  h.controller.windowTracked(opened.nodeValue);
+  h.tree.resetSiblingPercent(monitor);
+  h.controller.restoreWindows();
+  assert.equal(opened.parentNode, browser.parentNode);
+  assert.deepEqual([browser.parentNode.percent, editor.percent], [0.6, 0.4]);
+  assert.deepEqual(h.errors, []);
+});
+
+test("reopening an empty nested group retains saved direction and sibling order", () => {
+  const h = harness();
+  h.activate(["A", "B"]);
+  const right = h.add("right", 1);
+  h.controller.profile = {
+    monitors: [
+      {
+        id: "B",
+        workspaces: [
+          {
+            index: 2,
+            tree: {
+              layout: "HSPLIT",
+              children: [
+                { layout: "VSPLIT", children: [{ key: "top" }, { key: "bottom" }] },
+                { key: "right" },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  };
+  h.controller.apply();
+  const opened = h.add("bottom");
+  h.controller.windowTracked(opened.nodeValue);
+  h.controller.restoreWindows();
+  const group = opened.parentNode;
+  assert.equal(group.layout, "VSPLIT");
+  assert.deepEqual([...group.parentNode.childNodes], [group, right]);
+  assert.deepEqual(h.location(opened), [1, 2]);
+  const top = h.add("top");
+  h.controller.windowTracked(top.nodeValue);
+  h.controller.restoreWindows();
+  assert.equal(top.parentNode, group);
+  assert.deepEqual([...group.childNodes], [top, opened]);
+  assert.deepEqual(h.errors, []);
+});
+
+test("apps reopening into a split collapsed for a small display stay in its tabs", () => {
+  const h = harness();
+  h.activate(["A"], 500);
+  const one = h.add("one");
+  const two = h.add("two");
+  h.controller.profile = h.saved("A", 0, "one", "two", "three");
+  h.controller.profile.monitors[0].workspaces[0].tree.layout = "HSPLIT";
+  h.controller.apply();
+  const group = one.parentNode;
+  assert.equal(group.layout, "TABBED");
+  const three = h.add("three");
+  h.controller.windowTracked(three.nodeValue);
+  h.controller.restoreWindows();
+  assert.equal(three.parentNode, group);
+  assert.equal(one.parentNode, group);
+  assert.equal(two.parentNode, group);
+  assert.deepEqual(h.errors, []);
 });
 
 test("regular Edge windows share the last focused slot without accumulating containers", () => {

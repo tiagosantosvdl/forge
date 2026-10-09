@@ -473,6 +473,59 @@ function createRestoreHarness(autoSplit = true) {
   return { ...h, restored, splits };
 }
 
+test("new focus borders remain hidden while window creation waits for its first render", () => {
+  const h = createRestoreHarness(false);
+  const actor = h.restored.get_compositor_private();
+  delete actor.border;
+  h.context.St = {
+    Bin: class {
+      constructor(props) {
+        Object.assign(this, props);
+      }
+      show() {
+        this.visible = true;
+      }
+    },
+  };
+  const added = [];
+  h.context.global.window_group = {
+    add_child(border) {
+      // Catch visibility even before the first render can position the border.
+      assert.equal(border.visible, false);
+      added.push(border);
+    },
+  };
+  h.wm.trackWindow(null, h.restored);
+  assert.deepEqual(added, [actor.border]);
+  assert.equal(actor.border.visible, false);
+});
+
+test("opening on another monitor never auto-splits the focused window's group", () => {
+  const h = createRestoreHarness();
+  const focused = h.tree.firstChild;
+  focused.percent = 0.6;
+  const monitor = Object.assign(Object.create(h.context.Node.prototype), {
+    _type: "MONITOR",
+    _data: "mo1ws0",
+    _nodes: [],
+    layout: "HSPLIT",
+  });
+  h.tree.appendChild(monitor);
+  const findNode = h.tree.findNode.bind(h.tree);
+  h.tree.findNode = (value) => (value === "mo1ws0" ? monitor : findNode(value));
+  h.context.global.display.get_current_monitor = () => 1;
+  const createNode = h.tree.createNode;
+  h.tree.createNode = (...args) => {
+    const node = createNode(...args);
+    monitor.appendChild(node);
+    return node;
+  };
+  h.wm.trackWindow(null, h.restored);
+  assert.equal(h.splits.length, 0);
+  assert.equal(focused.percent, 0.6);
+  assert.equal(focused.parentNode, h.tree);
+});
+
 test("restoring a new window auto-splits once and repeated notifications leave the layout alone", () => {
   const h = createRestoreHarness();
   h.wm.trackWindow(null, h.restored);

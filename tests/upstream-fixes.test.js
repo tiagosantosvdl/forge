@@ -820,6 +820,70 @@ test("#574: a single tile shows its split hint above the focus border", () => {
   assert.ok(order.indexOf(w.actor.splitBorder) > order.indexOf(w.actor.border));
 });
 
+test("focus borders are positioned before appearing and invalid frames hide them", () => {
+  const h = harness();
+  const monitor = h.monitor();
+  const w = h.window("focused", { x: -1800, y: 80, width: 900, height: 700 });
+  monitor.appendChild(w.node);
+  h.focus(w.meta);
+  h.booleans.set("focus-border-toggle", true);
+  h.booleans.set("split-border-toggle", true);
+  h.wm.calculateGaps = () => 8;
+  const border = new h.context.St.Bin({ visible: false });
+  w.actor.border = border;
+  const show = border.show.bind(border);
+  border.show = () => {
+    assert.deepEqual([border.x, border.y, border.width, border.height], [-1803, 77, 906, 706]);
+    show();
+  };
+  h.wm.showWindowBorders();
+  assert.equal(border.visible, true);
+  assert.equal(w.actor.splitBorder.visible, true);
+  for (const rect of [
+    { x: 0, y: 0, width: 0, height: 0 },
+    { x: 0, y: 0, width: -1, height: 700 },
+    { x: 0, y: 0, width: 900, height: NaN },
+    { x: Infinity, y: 0, width: 900, height: 700 },
+    null,
+  ]) {
+    w.meta.get_frame_rect = () => rect;
+    h.wm.showWindowBorders();
+    assert.equal(border.visible, false);
+    assert.equal(w.actor.splitBorder.visible, false);
+  }
+});
+
+test("borders of closing actors are hidden even after their nodes leave the tree", () => {
+  const h = harness();
+  const actor = { border: new h.context.St.Bin(), splitBorder: new h.context.St.Bin() };
+  actor.border.show();
+  actor.splitBorder.show();
+  h.wm._windowActors = new Set([actor]);
+  h.wm.hideWindowBorders();
+  assert.equal(actor.border.visible, false);
+  assert.equal(actor.splitBorder.visible, false);
+});
+
+test("window border cleanup destroys overlays and clears actor references", () => {
+  const h = harness();
+  const border = new h.context.St.Bin();
+  const splitBorder = new h.context.St.Bin();
+  const actor = { border, splitBorder };
+  for (const overlay of [border, splitBorder]) {
+    h.context.global.window_group.add_child(overlay);
+    overlay.show();
+  }
+  h.wm.destroyWindowBorders(actor);
+  for (const overlay of [border, splitBorder]) {
+    assert.equal(overlay.visible, false);
+    assert.equal(overlay.destroyed, true);
+    assert.equal(h.context.global.window_group.contains(overlay), false);
+  }
+  assert.equal(actor.border, undefined);
+  assert.equal(actor.splitBorder, undefined);
+  h.wm.destroyWindowBorders(actor);
+});
+
 test("#524: a workspace move updates tabbed focus when no grab is active", () => {
   const h = harness();
   const monitor = h.monitor();

@@ -22,8 +22,9 @@ GNOME Shell validation of the latest upstream fixes is still pending. Repository
 changes take effect in an installed extension only after rebuilding, installing,
 and reloading it.
 
-Version 22.51.3 fixes center-drop grouping in split containers: the preview and
-drop target only the hovered window, preserving unrelated sibling windows.
+Version 22.51.4 keeps split sizes within the current session, restores equal
+shares, and places newly opened windows without rebuilding unrelated groups. It
+also fixes cross-monitor auto-splitting and stray focus-border overlays.
 
 ## Features
 
@@ -39,9 +40,14 @@ drop target only the hovered window, preserving unrelated sibling windows.
 
 ## Remembered layouts
 
-Forge saves monitor placement, workspace membership, groups, split directions,
-and proportions in `$XDG_STATE_HOME/forge/layouts.json`, normally
+Forge saves monitor placement, workspace membership, groups, and split directions
+in `$XDG_STATE_HOME/forge/layouts.json`, normally
 `~/.local/state/forge/layouts.json`.
+
+Split sizes last for the current session. Restoring a display layout starts with
+equal shares, subject to window minimum sizes; resize ratios in older saved files
+are ignored. Opening a window places it in its app's group without rebuilding
+unrelated groups or changing their sizes.
 
 Each set of active displays has its own saved layout. There are no fixed
 “docked” or “laptop-only” profiles. Displays are identified by hardware identity
@@ -80,7 +86,7 @@ Download the ZIP or Debian package from
 Install the ZIP for your user:
 
 ```bash
-gnome-extensions install --force forge@tiagosantosvdl.github.io-22.51.3.zip
+gnome-extensions install --force forge@tiagosantosvdl.github.io-22.51.4.zip
 ```
 
 Log out and back in, then enable Forge in Extension Manager or with
@@ -91,7 +97,7 @@ these GitHub releases.
 On Debian or Ubuntu with GNOME Shell 45–51, install the system-wide package:
 
 ```bash
-sudo apt install ./gnome-shell-extension-forge_22.51.3_all.deb
+sudo apt install ./gnome-shell-extension-forge_22.51.4_all.deb
 ```
 
 Log out and back in, then enable Forge. A user-local installation with this
@@ -133,7 +139,7 @@ gnome-extensions prefs forge@tiagosantosvdl.github.io
 
 The release workflow runs checks, builds both packages, and attaches them plus
 `SHA256SUMS` to a GitHub Release when a `vMAJOR.MINOR.PATCH` tag is pushed.
-The tag must match `package.json`. Prerelease tags such as `v22.51.3-rc.1` are
+The tag must match `package.json`. Prerelease tags such as `v22.51.4-rc.1` are
 also supported and produce GitHub prereleases.
 
 For each release, update the version in `package.json`, both root version fields
@@ -141,8 +147,8 @@ in `package-lock.json`, and `version-name` in `metadata.json` (use a space in
 place of the prerelease hyphen for GNOME). Commit the changes, then tag and push:
 
 ```bash
-git tag -a v22.51.3 -m "Forge 22.51.3"
-git push origin main v22.51.3
+git tag -a v22.51.4 -m "Forge 22.51.4"
+git push origin main v22.51.4
 ```
 
 Publishing a release manually also builds and attaches the packages. Running
@@ -152,8 +158,8 @@ without publishing a release.
 Build the same packages locally with `make release`. This additionally needs
 Python 3 and `dpkg-deb` (from `dpkg`). Outputs are under `dist/`:
 
-- `forge@tiagosantosvdl.github.io-22.51.3.zip` for per-user installation
-- `gnome-shell-extension-forge_22.51.3_all.deb` for system-wide installation
+- `forge@tiagosantosvdl.github.io-22.51.4.zip` for per-user installation
+- `gnome-shell-extension-forge_22.51.4_all.deb` for system-wide installation
 - `SHA256SUMS` for verification with `cd dist && sha256sum -c SHA256SUMS`
 
 The Debian package is architecture-independent and requires a supported GNOME
