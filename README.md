@@ -22,6 +22,12 @@ GNOME Shell validation of the latest upstream fixes is still pending. Repository
 changes take effect in an installed extension only after rebuilding, installing,
 and reloading it.
 
+Version 22.51.11 adds window clipping and GTK/Qt theme overrides to the border
+radius setting, preserving square fullscreen and maximized corners. Focus borders
+follow the actual stroke width to avoid gaps at the corners. Ubuntu Tiling Assistant
+can stay enabled: Forge pauses its assistance while global tiling is active and
+restores the previous preferences when tiling or Forge is disabled.
+
 Version 22.51.9 keeps newly opened windows on their opening monitor and workspace,
 uses placement history only within that location, and hides tab bars when a group
 has only one window left. It also prevents nested tabbed and stacked groups while
@@ -47,6 +53,29 @@ from 22.51.4 remain supported.
 - Tiling controls per workspace
 - Remembered layouts per set of active displays, including workspace membership
 - Customizable shortcuts, colors, gaps, and decorations in preferences
+
+## Window corners
+
+Appearance → Border radius controls window corners as well as Forge's focus
+borders and tiling previews. Forge applies compositor clipping to regular windows
+and dialogs, including applications with custom decorations. Fullscreen and
+maximized windows keep square corners. A radius of zero disables clipping.
+
+Forge also adds a managed block to the user’s `gtk-3.0/gtk.css` and
+`gtk-4.0/gtk.css` under `$XDG_CONFIG_HOME` (normally `~/.config`). These overrides
+use the selected radius, with square corners in fullscreen and maximized states.
+Existing user CSS is preserved. Some applications need to restart to load it.
+
+For existing qt5ct and qt6ct configurations, Forge registers a stylesheet that
+keeps top-level widget backgrounds square, leaving the selected outer radius to
+clipping. This preserves fullscreen behavior without changing the selected Qt
+style or platform theme. Native Qt Wayland title bars and applications with
+their own styling are handled by clipping; the stylesheet does not control those
+decorations. Qt Quick applications also use clipping.
+
+Disabling Forge removes its clipping effects and theme overrides, preserving
+user configuration edits made while it was enabled. Clipping cannot restore
+pixels already removed by an application's own rounded corners.
 
 ## Remembered layouts
 
@@ -112,6 +141,21 @@ member tabs and do not rearrange windows or save a new layout.
 On current GNOME, browser favicons and notification badges drawn by an app may
 not be exposed to Forge; tabs use the app icon available through GNOME.
 
+## Ubuntu Tiling Assistant
+
+Ubuntu Tiling Assistant can remain enabled alongside Forge. While Forge's global
+tiling mode is on, Forge temporarily pauses its edge dragging, group resizing,
+shortcuts, tiling popups, focus hints, layout indicator, and other assistance.
+Turning Forge tiling off or disabling Forge restores the previous settings and
+handlers. Layouts, gaps, and appearance preferences are preserved. Changes to
+assistance preferences made while paused take effect when Forge releases control.
+
+Saved preferences survive a Shell restart. Integration also handles enabling
+Tiling Assistant after Forge and recreating its handlers after unlocking. A
+switch made during a drag or resize waits until the grab ends. This applies to
+Ubuntu's `tiling-assistant@ubuntu.com`; pausing drag and resize assistance uses
+its internal handlers and may need adjustment if Ubuntu changes those APIs.
+
 ## Installation
 
 Download the ZIP or Debian package from
@@ -120,7 +164,7 @@ Download the ZIP or Debian package from
 Install the ZIP for your user:
 
 ```bash
-gnome-extensions install --force forge@tiagosantosvdl.github.com-22.51.9.zip
+gnome-extensions install --force forge@tiagosantosvdl.github.com-22.51.11.zip
 ```
 
 Log out and back in, then enable Forge in Extension Manager or with
@@ -131,7 +175,7 @@ these GitHub releases.
 On Debian or Ubuntu with GNOME Shell 45–51, install the system-wide package:
 
 ```bash
-sudo apt install ./gnome-shell-extension-forge-tiagosantosvdl_22.51.9_all.deb
+sudo apt install ./gnome-shell-extension-forge-tiagosantosvdl_22.51.11_all.deb
 ```
 
 Log out and back in, then enable Forge. A user-local installation with this
@@ -173,7 +217,7 @@ gnome-extensions prefs forge@tiagosantosvdl.github.com
 
 The release workflow runs checks, builds both packages, and attaches them plus
 `SHA256SUMS` to a GitHub Release when a `vMAJOR.MINOR.PATCH` tag is pushed.
-The tag must match `package.json`. Prerelease tags such as `v22.51.9-rc.1` are
+The tag must match `package.json`. Prerelease tags such as `v22.51.11-rc.1` are
 also supported and produce GitHub prereleases.
 
 For each release, update the version in `package.json`, both root version fields
@@ -181,8 +225,8 @@ in `package-lock.json`, and `version-name` in `metadata.json` (use a space in
 place of the prerelease hyphen for GNOME). Commit the changes, then tag and push:
 
 ```bash
-git tag -a v22.51.9 -m "Forge 22.51.9"
-git push origin main v22.51.9
+git tag -a v22.51.11 -m "Forge 22.51.11"
+git push origin main v22.51.11
 ```
 
 Publishing a release manually also builds and attaches the packages. Running
@@ -194,8 +238,8 @@ Python 3 and `dpkg-deb` (from `dpkg`). Outputs are under `dist/`:
 
 Release filenames follow the same convention across these extensions: `<uuid>-<version>.zip`, `gnome-shell-extension-<name>-tiagosantosvdl_<debian-version>_all.deb`, and `SHA256SUMS`. Debian prerelease versions use `~rc.1` where ZIP versions use `-rc.1`.
 
-- `forge@tiagosantosvdl.github.com-22.51.9.zip` for per-user installation
-- `gnome-shell-extension-forge-tiagosantosvdl_22.51.9_all.deb` for system-wide installation
+- `forge@tiagosantosvdl.github.com-22.51.11.zip` for per-user installation
+- `gnome-shell-extension-forge-tiagosantosvdl_22.51.11_all.deb` for system-wide installation
 - `SHA256SUMS` for verification with `cd dist && sha256sum -c SHA256SUMS`
 
 The Debian package is architecture-independent and requires a supported GNOME

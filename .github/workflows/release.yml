@@ -85,6 +85,10 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || github.ref_name }}
+
       - uses: actions/download-artifact@v4
         with:
           name: forge-release-packages
@@ -103,6 +107,11 @@ jobs:
             if [[ "$RELEASE_TAG" == *-* ]]; then
               extra+=(--prerelease)
             fi
+            if [ -f RELEASE_NOTES.md ]; then
+              extra+=(--notes-file RELEASE_NOTES.md)
+            else
+              extra+=(--generate-notes)
+            fi
             gh release create "$RELEASE_TAG" dist/* --verify-tag \
-              --title "Forge $RELEASE_TAG" --generate-notes "${extra[@]}"
+              --title "Forge $RELEASE_TAG" "${extra[@]}"
           fi

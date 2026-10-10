@@ -29,6 +29,8 @@ import { Keybindings } from "./lib/extension/keybindings.js";
 import { WindowManager } from "./lib/extension/window.js";
 import { FeatureIndicator, FeatureMenuToggle } from "./lib/extension/indicator.js";
 import { ExtensionThemeManager } from "./lib/extension/extension-theme-manager.js";
+import { WindowCorners } from "./lib/extension/window-corners.js";
+import { TilingAssistant } from "./lib/extension/tiling-assistant.js";
 
 export default class ForgeExtension extends Extension {
   enable() {
@@ -42,12 +44,17 @@ export default class ForgeExtension extends Extension {
     this.extWm = new WindowManager(this);
     this.keybindings = new Keybindings(this);
 
+    this.tilingAssistant = new TilingAssistant(this);
+    this.tilingAssistant.enable();
+
     this._onSessionModeChanged(Main.sessionMode);
     this._sessionId = Main.sessionMode.connect("updated", this._onSessionModeChanged.bind(this));
 
     this.theme.patchCss();
     this.theme.reloadStylesheet();
     this.extWm.enable();
+    this.windowCorners = new WindowCorners(this);
+    this.windowCorners.enable();
     Logger.info(`enable: finalized vars`);
   }
 
@@ -61,8 +68,12 @@ export default class ForgeExtension extends Extension {
     }
 
     this._removeIndicator();
+    this.windowCorners?.disable();
+    this.windowCorners = null;
     this.extWm?.disable();
     this.keybindings?.disable();
+    this.tilingAssistant?.disable();
+    this.tilingAssistant = null;
     this.keybindings = null;
     this.extWm = null;
     // mayconrcmello, upstream PR #521: release the manager assigned by enable().

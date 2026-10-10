@@ -2,6 +2,10 @@
 <schemalist>
     <schema id="org.gnome.shell.extensions.forge" path="/org/gnome/shell/extensions/forge/">
         <!-- Main Settings -->
+        <key type="s" name="tiling-assistant-overrides">
+            <default>'{}'</default>
+            <summary>Saved Ubuntu Tiling Assistant preferences while Forge tiling is active</summary>
+        </key>
         <key type="b" name="focus-border-toggle">
             <default>true</default>
             <summary>Show window border on focused window</summary>

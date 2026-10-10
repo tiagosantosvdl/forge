@@ -31,6 +31,20 @@ On navigating `Appearance` parent item,
 
 ## Window Effects
 
+When changing Appearance > Border radius:
+
+- [ ] Existing and newly opened GTK, Qt, and custom-decorated windows use the selected radius.
+- [ ] Floating windows and dialogs round independently of the focused-window border toggle.
+- [ ] Resizing and moving between differently scaled monitors keeps clipping aligned with the frame.
+- [ ] Radius 8 with focus widths 1, 2, and 3 has no gap between the focus stroke and GTK window corners; split hints share the outer edge.
+- [ ] Changing the radius or border width updates the focused outline immediately.
+- [ ] Clipping remains aligned on windows with client-side shadows and during overview animations.
+- [ ] Fullscreen and maximized windows have square corners, including after changing the radius.
+- [ ] Leaving fullscreen or unmaximizing restores the selected radius.
+- [ ] Radius 0 disables clipping; resetting restores radius 14.
+- [ ] Disabling Forge removes its effects and managed GTK/Qt overrides without removing user CSS or Qt settings.
+- [ ] Qt overrides register with existing qt5ct/qt6ct setups without changing the selected style.
+
 When changing Preferences on Appearance > Colors:
 
 - [ ] - Tiled Focus Hint updates border size and color
@@ -46,6 +60,16 @@ When changing Preferences on Appearance > Colors:
 - [ ] - Tabbed Focus Hint updates can be reset
 
 ## Tiling Mode
+
+With Ubuntu Tiling Assistant enabled:
+
+- [ ] Enabling Forge tiling keeps Tiling Assistant enabled while suppressing edge previews, group resizing, shortcuts, popups, focus hints, and its layout indicator.
+- [ ] Turning Forge tiling off restores the exact previous assistance settings and shortcuts, including defaults without explicit user values.
+- [ ] Disabling Forge also restores Tiling Assistant's assistance.
+- [ ] Layouts, gaps, and appearance settings remain unchanged.
+- [ ] Editing assistance preferences while paused keeps assistance off and restores the edited preferences when Forge tiling is disabled.
+- [ ] Enabling Tiling Assistant after Forge, locking/unlocking, and restarting Shell preserve the saved preferences and pause the current handlers.
+- [ ] Toggling during a drag or resize waits for the grab to finish before switching ownership.
 
 When dragging a window:
 

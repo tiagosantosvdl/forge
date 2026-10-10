@@ -77,6 +77,12 @@ function harness() {
     add_style_class_name() {}
     remove_style_class_name() {}
     set_style_class_name() {}
+    set_style(style) {
+      this.style = style;
+    }
+    get_theme_node() {
+      return { get_border_width: () => this.borderWidth ?? 3 };
+    }
     insert_child_above(child, below) {
       this.add_child(child);
       this.children.splice(this.children.indexOf(child), 1);
@@ -222,6 +228,7 @@ function harness() {
   load("lib/css/index.js", "parse, stringify");
   load("lib/shared/settings.js", "ConfigManager");
   load("lib/shared/theme.js", "ThemeManagerBase");
+  load("lib/shared/window-corners.js", "normalizeRadius");
   load("lib/extension/tree.js", "Node, Tree, LAYOUT_TYPES, NODE_TYPES");
   load("lib/extension/window.js", "WindowManager");
   const wm = Object.create(context.WindowManager.prototype);
@@ -997,6 +1004,29 @@ test("focus borders are positioned before appearing and invalid frames hide them
     assert.equal(border.visible, false);
     assert.equal(w.actor.splitBorder.visible, false);
   }
+});
+
+test("focus strokes meet rounded frames at custom widths and stay square in fullscreen", () => {
+  const h = harness();
+  const monitor = h.monitor();
+  const w = h.window("rounded", { x: 100, y: 80, width: 900, height: 700 });
+  monitor.appendChild(w.node);
+  h.focus(w.meta);
+  h.booleans.set("focus-border-toggle", true);
+  h.wm.calculateGaps = () => 8;
+  h.wm.ext.windowCorners = { radius: 8 };
+  const border = new h.context.St.Bin({ borderWidth: 2 });
+  w.actor.border = border;
+  h.wm.showWindowBorders();
+  assert.deepEqual([border.x, border.y, border.width, border.height], [98, 78, 904, 704]);
+  assert.equal(border.style, "border-radius: 10px;");
+  h.wm.ext.windowCorners.radius = 0;
+  h.wm.showWindowBorders();
+  assert.equal(border.style, "border-radius: 0px;");
+  h.wm.ext.windowCorners.radius = 8;
+  w.meta.is_fullscreen = () => true;
+  h.wm.showWindowBorders();
+  assert.equal(border.visible, false);
 });
 
 test("borders of closing actors are hidden even after their nodes leave the tree", () => {
