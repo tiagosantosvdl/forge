@@ -954,6 +954,33 @@ test("#575: a window from another workspace cannot leave a focus border on the c
   assert.equal(w.actor.border.visible, false);
 });
 
+test("focus and split borders follow the global tiling toggle", () => {
+  const h = harness();
+  const monitor = h.monitor();
+  const w = h.window();
+  monitor.appendChild(w.node);
+  h.focus(w.meta);
+  h.booleans.set("focus-border-toggle", true);
+  h.booleans.set("split-border-toggle", true);
+  h.wm.calculateGaps = () => 8;
+  w.actor.border = new h.context.St.Bin({ visible: false });
+  h.wm.showWindowBorders();
+  assert.equal(w.actor.border.visible, true);
+  assert.equal(w.actor.splitBorder.visible, true);
+  h.booleans.set("tiling-mode-enabled", false);
+  h.wm.showWindowBorders();
+  assert.equal(w.actor.border.visible, false);
+  assert.equal(w.actor.splitBorder.visible, false);
+  h.booleans.set("tiling-mode-enabled", true);
+  h.wm.showWindowBorders();
+  assert.equal(w.actor.border.visible, true);
+  assert.equal(w.actor.splitBorder.visible, true);
+  h.booleans.set("focus-border-toggle", false);
+  h.wm.showWindowBorders();
+  assert.equal(w.actor.border.visible, false);
+  assert.equal(w.actor.splitBorder.visible, false);
+});
+
 test("#574: a single tile shows its split hint above the focus border", () => {
   const h = harness();
   const monitor = h.monitor();

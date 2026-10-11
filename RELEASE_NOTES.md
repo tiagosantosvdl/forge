@@ -1,24 +1,18 @@
-# Forge 22.51.11
+# Forge 22.51.12
 
-The border radius setting now rounds window decorations and contents, and Ubuntu
-Tiling Assistant can stay enabled while Forge manages tiling.
+Focus borders now follow Forge's global tiling toggle, and shortcut warnings
+remain accessible after their banners close.
 
-- Apply compositor clipping to GTK, Qt, and custom-decorated windows and dialogs.
-  Add managed GTK theme overrides and a stylesheet for existing qt5ct/qt6ct
-  configurations. Preserve square corners in fullscreen and maximized states.
-- Align focus borders with the window using the configured stroke width and
-  radius. Refresh borders immediately when appearance settings change, and
-  account for client-side shadows and compositor texture padding when clipping.
-- Pause Ubuntu Tiling Assistant's dragging, group resizing, shortcuts, popups,
-  focus hints, and other assistance while Forge's global tiling is enabled.
-  Restore its settings and handlers when Forge tiling or Forge is disabled,
-  without disabling the Ubuntu extension. Preserve preference edits and save
-  restoration data across Shell restarts.
-
-Applications such as Edge and its installed web apps may need to restart to load
-the updated theme radius. Tiling Assistant integration targets Ubuntu's extension
-and uses its internal drag and resize handlers.
+- Show focus and split borders only while global tiling is enabled. Turning
+  tiling off hides both; turning it back on restores enabled borders.
+- Keep shortcut conflict and registration warnings in the notification list
+  under Forge. Clicking the warning or **Open Preferences** opens Forge
+  Preferences, where the Keyboard page shows the affected shortcuts.
+- Replace outdated warnings when conflicts change, remove them when all
+  conflicts are resolved, and clean them up when Forge is disabled.
+- Support both GNOME 45 and the newer notification API, with regression coverage
+  for notification persistence, activation, replacement, and cleanup.
 
 Validation: all JavaScript regression suites, native GJS/GTK and GSettings tests,
-formatting checks, and Debian/ZIP packaging checks pass. The current desktop
-session still needs to reload Forge after installation to use this release.
+formatting checks, and Debian/ZIP packaging checks pass. Log out and back in after
+installation to load the updated extension.

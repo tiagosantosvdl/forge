@@ -61,7 +61,7 @@ test("repeating an accelerator under an alias is a duplicate", () => {
   assert.equal(conflicts[0].kind, "duplicate");
 });
 
-function runtimeHarness() {
+function runtimeHarness({ modern = true } = {}) {
   const values = new Map([
     ["window-focus-right", ["<Alt><Super>l"]],
     ["window-focus-left", ["<Alt><Super>h"]],
@@ -74,6 +74,65 @@ function runtimeHarness() {
   const idles = new Map();
   const registered = new Set();
   const notifications = [];
+  const sources = [];
+  let preferencesOpened = 0;
+  class Signals {
+    constructor() {
+      this.signals = new Map();
+    }
+    connect(name, callback) {
+      this.signals.set(name, callback);
+    }
+    emit(name) {
+      this.signals.get(name)?.();
+    }
+  }
+  class Source extends Signals {
+    constructor(...args) {
+      super();
+      if (modern) {
+        assert.equal(args.length, 1);
+        Object.assign(this, args[0]);
+      } else {
+        assert.equal(args.length, 2);
+        [this.title, this.iconName] = args;
+      }
+      this.notifications = [];
+    }
+    addNotification(notification) {
+      this.notifications.push(notification);
+      notifications.push(notification);
+    }
+    showNotification(notification) {
+      assert.equal(modern, false);
+      this.addNotification(notification);
+    }
+    destroy() {
+      this.destroyed = true;
+      this.notifications = [];
+      this.emit("destroy");
+    }
+  }
+  class Notification extends Signals {
+    constructor(...args) {
+      super();
+      if (modern) {
+        assert.equal(args.length, 1);
+        Object.assign(this, args[0]);
+      } else {
+        assert.equal(args.length, 3);
+        [this.source, this.title, this.body] = args;
+      }
+      this.actions = [];
+    }
+    setTransient(value) {
+      assert.equal(modern, false);
+      this.isTransient = value;
+    }
+    addAction(label, callback) {
+      this.actions.push({ label, callback });
+    }
+  }
   const failures = new Set();
   const attempts = [];
   const context = vm.createContext({
@@ -95,6 +154,7 @@ function runtimeHarness() {
     Meta: { KeyBindingFlags: { NONE: 0 }, KeyBindingAction: { NONE: 0 } },
     Shell: { ActionMode: { NORMAL: 1 } },
     Main: {
+      messageTray: { add: (source) => sources.push(source) },
       wm: {
         addKeybinding(key) {
           attempts.push(key);
@@ -107,9 +167,11 @@ function runtimeHarness() {
           registered.delete(key);
         },
       },
-      notify(title, body) {
-        notifications.push({ title, body });
-      },
+    },
+    MessageTray: {
+      Source,
+      Notification,
+      ...(modern ? { getSystemSource() {} } : {}),
     },
     Logger: { debug() {}, error() {} },
     _: (text) => text,
@@ -140,12 +202,19 @@ function runtimeHarness() {
     },
   };
   const instance = vm.runInContext("Keybindings", context);
-  const bindings = new instance({ kbdSettings: settings, settings: {}, extWm: {} });
+  const bindings = new instance({
+    kbdSettings: settings,
+    settings: {},
+    extWm: {},
+    openPreferences: () => preferencesOpened++,
+  });
   return {
     bindings,
     values,
     registered,
     notifications,
+    sources,
+    preferencesOpened: () => preferencesOpened,
     failures,
     attempts,
     idles,
@@ -198,6 +267,52 @@ test("runtime registration failures notify and enabled bindings retry after chan
   assert.equal(harness.idles.size, 1);
   harness.flush();
   assert.equal(harness.registered.has("window-focus-right"), true);
+});
+
+for (const modern of [true, false]) {
+  test(`shortcut warnings persist and open preferences on GNOME ${modern ? "46+" : "45"}`, () => {
+    const harness = runtimeHarness({ modern });
+    harness.failures.add("window-focus-right");
+    harness.bindings.enable();
+    const notification = harness.notifications[0];
+    const source = harness.sources[0];
+    assert.equal(source.title, "Forge");
+    assert.equal(notification.isTransient, false);
+    assert.equal(source.notifications.includes(notification), true);
+    notification.emit("activated");
+    assert.equal(harness.preferencesOpened(), 1);
+    assert.equal(notification.actions[0].label, "Open Preferences");
+    notification.actions[0].callback();
+    assert.equal(harness.preferencesOpened(), 2);
+    harness.failures.clear();
+    harness.change();
+    harness.flush();
+    assert.equal(source.destroyed, true);
+    assert.equal(harness.bindings._notificationSource, null);
+    harness.bindings.disable();
+  });
+}
+
+test("changed warnings replace old ones, dismissed sources can be recreated, and disable cleans up", () => {
+  const harness = runtimeHarness();
+  harness.failures.add("window-focus-right");
+  harness.bindings.enable();
+  harness.failures.add("window-focus-left");
+  harness.change();
+  harness.flush();
+  assert.equal(harness.sources[0].destroyed, true);
+  assert.equal(harness.sources.length, 2);
+  harness.sources[1].destroy();
+  assert.equal(harness.bindings._notificationSource, null);
+  harness.failures.delete("window-focus-left");
+  harness.change();
+  harness.flush();
+  assert.equal(harness.sources.length, 3);
+  harness.bindings.disable();
+  assert.equal(harness.sources[2].destroyed, true);
+  harness.bindings.enable();
+  assert.equal(harness.sources.length, 4);
+  harness.bindings.disable();
 });
 
 test("system changes refresh conflicts and disable cleans signals and pending work", () => {

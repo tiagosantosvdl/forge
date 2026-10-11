@@ -61,6 +61,13 @@ When changing Preferences on Appearance > Colors:
 
 ## Tiling Mode
 
+For shortcut conflict warnings:
+
+- [ ] After its banner closes, the warning remains in the notification list under Forge.
+- [ ] Clicking the warning or Open Preferences opens Forge Preferences.
+- [ ] Resolving all conflicts removes the warning; updated conflicts replace the previous warning.
+- [ ] Disabling Forge removes its shortcut warning.
+
 With Ubuntu Tiling Assistant enabled:
 
 - [ ] Enabling Forge tiling keeps Tiling Assistant enabled while suppressing edge previews, group resizing, shortcuts, popups, focus hints, and its layout indicator.

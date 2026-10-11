@@ -22,6 +22,10 @@ GNOME Shell validation of the latest upstream fixes is still pending. Repository
 changes take effect in an installed extension only after rebuilding, installing,
 and reloading it.
 
+Version 22.51.12 hides focus borders when global tiling is disabled. Shortcut
+conflict warnings remain in the notification list and open Forge Preferences when
+clicked, and disappear when conflicts are resolved.
+
 Version 22.51.11 adds window clipping and GTK/Qt theme overrides to the border
 radius setting, preserving square fullscreen and maximized corners. Focus borders
 follow the actual stroke width to avoid gaps at the corners. Ubuntu Tiling Assistant
@@ -164,7 +168,7 @@ Download the ZIP or Debian package from
 Install the ZIP for your user:
 
 ```bash
-gnome-extensions install --force forge@tiagosantosvdl.github.com-22.51.11.zip
+gnome-extensions install --force forge@tiagosantosvdl.github.com-22.51.12.zip
 ```
 
 Log out and back in, then enable Forge in Extension Manager or with
@@ -175,7 +179,7 @@ these GitHub releases.
 On Debian or Ubuntu with GNOME Shell 45–51, install the system-wide package:
 
 ```bash
-sudo apt install ./gnome-shell-extension-forge-tiagosantosvdl_22.51.11_all.deb
+sudo apt install ./gnome-shell-extension-forge-tiagosantosvdl_22.51.12_all.deb
 ```
 
 Log out and back in, then enable Forge. A user-local installation with this
@@ -217,7 +221,7 @@ gnome-extensions prefs forge@tiagosantosvdl.github.com
 
 The release workflow runs checks, builds both packages, and attaches them plus
 `SHA256SUMS` to a GitHub Release when a `vMAJOR.MINOR.PATCH` tag is pushed.
-The tag must match `package.json`. Prerelease tags such as `v22.51.11-rc.1` are
+The tag must match `package.json`. Prerelease tags such as `v22.51.12-rc.1` are
 also supported and produce GitHub prereleases.
 
 For each release, update the version in `package.json`, both root version fields
@@ -225,8 +229,8 @@ in `package-lock.json`, and `version-name` in `metadata.json` (use a space in
 place of the prerelease hyphen for GNOME). Commit the changes, then tag and push:
 
 ```bash
-git tag -a v22.51.11 -m "Forge 22.51.11"
-git push origin main v22.51.11
+git tag -a v22.51.12 -m "Forge 22.51.12"
+git push origin main v22.51.12
 ```
 
 Publishing a release manually also builds and attaches the packages. Running
@@ -238,8 +242,8 @@ Python 3 and `dpkg-deb` (from `dpkg`). Outputs are under `dist/`:
 
 Release filenames follow the same convention across these extensions: `<uuid>-<version>.zip`, `gnome-shell-extension-<name>-tiagosantosvdl_<debian-version>_all.deb`, and `SHA256SUMS`. Debian prerelease versions use `~rc.1` where ZIP versions use `-rc.1`.
 
-- `forge@tiagosantosvdl.github.com-22.51.11.zip` for per-user installation
-- `gnome-shell-extension-forge-tiagosantosvdl_22.51.11_all.deb` for system-wide installation
+- `forge@tiagosantosvdl.github.com-22.51.12.zip` for per-user installation
+- `gnome-shell-extension-forge-tiagosantosvdl_22.51.12_all.deb` for system-wide installation
 - `SHA256SUMS` for verification with `cd dist && sha256sum -c SHA256SUMS`
 
 The Debian package is architecture-independent and requires a supported GNOME
@@ -266,7 +270,9 @@ applied. Existing saved shortcuts are never rewritten just by opening
 preferences or upgrading Forge.
 
 At runtime, an action with a conflicting binding is disabled and reported in a
-notification. Resolve it in preferences; Forge refreshes its registrations when
+notification. The warning stays in the notification list until dismissed or
+resolved; clicking it or **Open Preferences** opens Forge Preferences.
+Resolve it in preferences; Forge refreshes its registrations when
 shortcut settings change. GNOME's shortcuts are preserved.
 
 Navigation uses Super+Alt+H/J/K/L; add Ctrl for swapping or Shift for moving.
