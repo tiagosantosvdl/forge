@@ -9,7 +9,7 @@ This is [@tiagosantosvdl's fork](https://github.com/tiagosantosvdl/forge) of
 [upstream Forge](https://github.com/forge-ext/forge), maintained using OpenAI
 Codex. This fork provides its own extension packages.
 
-- Current version: **22.51.14**.
+- Current version: **22.51.15**.
 - Extension UUID: `forge@tiagosantosvdl.github.com`.
 - Supported GNOME Shell versions: **45–51**, as declared in
   [metadata.json](metadata.json), with X11 and Wayland support. This is not a
@@ -56,10 +56,10 @@ with the same UUID.
 
 ### Debian / Ubuntu package
 
-For release `22.51.14`, install the downloaded package:
+For release `22.51.15`, install the downloaded package:
 
 ```sh
-sudo apt install ./gnome-shell-extension-forge-tiagosantosvdl_22.51.14_all.deb
+sudo apt install ./gnome-shell-extension-forge-tiagosantosvdl_22.51.15_all.deb
 ```
 
 The package declares dependencies on GNOME Shell 45–51 and `gir1.2-adw-1`.
@@ -82,7 +82,7 @@ per-user copy first with
 Install the downloaded ZIP:
 
 ```sh
-gnome-extensions install --force ./forge@tiagosantosvdl.github.com-22.51.14.zip
+gnome-extensions install --force ./forge@tiagosantosvdl.github.com-22.51.15.zip
 ```
 
 Install libadwaita's introspection bindings (`gir1.2-adw-1` on Debian / Ubuntu)
@@ -110,17 +110,17 @@ make release
 
 Building packages stages the extension under `temp/` without installing or
 activating it. The release version comes from `package.json`. For version
-`22.51.14`, the output is:
+`22.51.15`, the output is:
 
-- `dist/forge@tiagosantosvdl.github.com-22.51.14.zip`
-- `dist/gnome-shell-extension-forge-tiagosantosvdl_22.51.14_all.deb`
+- `dist/forge@tiagosantosvdl.github.com-22.51.15.zip`
+- `dist/gnome-shell-extension-forge-tiagosantosvdl_22.51.15_all.deb`
 - `dist/SHA256SUMS`
 
 Verify and install the local Debian build:
 
 ```sh
 (cd dist && sha256sum -c SHA256SUMS)
-sudo apt install ./dist/gnome-shell-extension-forge-tiagosantosvdl_22.51.14_all.deb
+sudo apt install ./dist/gnome-shell-extension-forge-tiagosantosvdl_22.51.15_all.deb
 ```
 
 Alternatively, build and install a per-user copy:
@@ -397,18 +397,23 @@ the new code loads.
 Update the version in `package.json`, both root version fields in
 `package-lock.json`, and `version-name` in `metadata.json`. Update the version
 examples in this README and [RELEASE_NOTES.md](RELEASE_NOTES.md). Release tags
-must match `package.json`, such as `v22.51.14`.
+must match `package.json`, such as `v22.51.15`.
 
 The [release workflow](.github/workflows/release.yml) validates the source,
 builds packages, and publishes them when a matching version tag is pushed or a
 GitHub Release is published. The manual **Run workflow** option builds
 downloadable artifacts without publishing a release.
 
-Prerelease tags such as `v22.51.14-rc.1` use package version `22.51.14-rc.1`,
-GNOME `version-name` `22.51.14 rc.1`, and Debian version `22.51.14~rc.1`.
+Prerelease tags such as `v22.51.15-rc.1` use package version `22.51.15-rc.1`,
+GNOME `version-name` `22.51.15 rc.1`, and Debian version `22.51.15~rc.1`.
 The workflow marks those releases as prereleases.
 
 ### Recent changes
+
+Version 22.51.15 refreshes corner geometry on every paint and invalidates cached
+effect output after updates. Client resize notifications use the resizing
+window rather than the focused window when restoring tile placement. Live
+VirtualBox verification remains pending.
 
 Version 22.51.14 fixes duplicate shortcut registration after unlocking by reusing
 the extension-owned shortcut manager during window drag checks.

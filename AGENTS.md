@@ -5,11 +5,14 @@ for future coding agents. Read any additional applicable `AGENTS.md` files.
 
 ## Maintaining this file
 
-Keep this file up to date with your completed work and useful discoveries.
-Update the current state, implementation notes, validation results, known
-limitations, and remaining work when they change. Correct stale information
-instead of appending a chronological activity log. Distinguish verified facts
-from assumptions, and record enough context for another agent to continue.
+Maintain `AGENTS.md` autonomously as a practical reference. Explain current
+behavior, useful tools, discoveries, confirmed fixes, unresolved issues and
+validation limits in the relevant section. Replace outdated information and
+consolidate duplicates. Do not keep a chronological log, dated incident reports,
+conversation history or a list of past authorizations. Preserve standing user
+instructions and distinguish verified facts from hypotheses. Updating this
+guide does not authorize implementation changes or changes to the running
+machine.
 
 This file will be committed to a **public repository**. Include only information
 safe to publish. Never add credentials, tokens, passwords, private account or
@@ -25,31 +28,33 @@ The user supplied this instruction:
 
 > Always discuss the issues only, never makes unless I explicitely require.
 
-Investigate and explain questions/bug reports; implement when explicitly asked
-or told to proceed. The user explicitly permits updating this handoff as agent
-memory without asking permission; that does not authorize implementation changes.
-Discussion does not authorize deployment or live desktop
-configuration changes. When release and installation are requested, complete
-them without repeatedly asking permission already granted. OS authentication
-may still be necessary. Preserve unrelated edits. Never log out the user or
-restart their live Shell automatically. This session did not authorize subagents.
+Discuss issues and proposed changes first. Make implementation changes only
+when explicitly requested. A request to implement or fix something authorizes
+its corresponding edits and validation. Do not commit, push or publish unless
+requested. Keep repository changes, test-environment changes and changes to the
+running machine separate: permission for one does not automatically authorize
+another. Historical requests recorded in this guide are context, not new tasks
+or standing authorization.
+
+When release and installation are requested, complete them without repeatedly
+asking permission already granted. OS authentication may still be necessary.
+Preserve unrelated edits. Never log out the user or restart their live Shell
+automatically. Do not use subagents unless explicitly authorized.
 
 ## Current state
 
 - Repository: https://github.com/tiagosantosvdl/forge; `origin` uses SSH; branch `main`.
 - Extension UUID: `forge@tiagosantosvdl.github.com`.
-- Current source and installed version: **22.51.14**, built locally from the
-  working tree. The user has now requested committing, pushing, and a tagged
-  release of 22.51.14. Check Git and GitHub for publication status.
-- Release destination: https://github.com/tiagosantosvdl/forge/releases/tag/v22.51.14
-- The 22.51.13 release and both GitHub workflows were verified successful.
+- Current source version: **22.51.15**; installed version last verified: **22.51.14**.
+- Release destination: https://github.com/tiagosantosvdl/forge/releases/tag/v22.51.15
+- Local `main` and remote `main` matched before preparing 22.51.15; its tag was absent.
 - Version 22.51.14 was checksum-verified and installed locally. All 71 installed
-  extension files match its corresponding ZIP.
+  extension files matched its corresponding ZIP.
 - System path: `/usr/share/gnome-shell/extensions/forge@tiagosantosvdl.github.com`.
-- Local 22.51.14 assets/checksums are in ignored `dist/`; older published assets
-  are cached under `dist/published-<version>/`.
-- The user confirmed the 22.51.13 corner appearance improved. Desktop reload
-  and live verification of the 22.51.14 shortcut fix remain unconfirmed.
+- Release assets/checksums are in ignored `dist/`; published assets are cached
+  under `dist/published-<version>/`.
+- Live verification of the VirtualBox rendering/tiling changes remains pending.
+  Publication and installation of 22.51.15 are not yet verified.
 
 Declared Shell support is 45–51; the inspected local Shell was 50.1. Automated
 checks are not a complete visual compatibility matrix. Installation does not
@@ -176,6 +181,31 @@ It does **not**. They did not request implementing one.
 
 ### Related desktop investigation
 
+VirtualBox has reported broad curved distortion/clipping across the VM window,
+including its host-side status bar, after the corner shader update. Guest-driven
+resizes also reportedly disturb tile placement. Switching focus clears both
+symptoms; the exact live cause remains unconfirmed.
+
+The source now calculates frame/buffer geometry on every effect paint alongside
+the current render target, allocation and resource scale. It retains only the
+configured radius and uses `Clutter.Effect.queue_repaint()` on updates to
+invalidate cached effect output. Previously frame bounds were cached during
+resize/allocation signals, potentially retaining an intermediate resize state.
+Both Shell shader API tests exercise resizing and scale changes without another
+manager update. The repaint API was verified against the installed typelib.
+
+`WindowManager.updateMetaPositionSize()` now checks the window emitting a
+geometry notification rather than the focused window. Tile restoration no longer
+depends on another window being unmaximized or tracked, or on focus existing.
+Notifications from other windows do not enter the focused window's grab handler;
+fullscreen and maximized windows retain their own geometry. Two new regression
+tests fail against the previous source and pass with the fix. All eight
+JavaScript suites pass (196 tests); all fifteen Python tests pass with the
+isolated native GTK socket test rerun outside the sandbox. `TESTS.md` includes
+the pending VirtualBox manual checks. Synthetic tests do not exercise live
+compositor texture reuse or VirtualBox. These changes are source-only and have
+not been installed or verified on the live desktop.
+
 Okular is a Flatpak. Its Qt decoration plugin controls titlebar glyphs; normal
 icon overrides did not change them. The user confirmed this launch gives the
 expected decorations:
@@ -194,7 +224,7 @@ inventories as current state.
 
 ## Validation
 
-The 22.51.14 release checks passed eight Node test files (194 tests) and fifteen
+The 22.51.15 source checks passed eight Node test files (196 tests) and fifteen
 Python tests including native GTK/GJS/GSettings checks, formatting, whitespace, package contents, and
 checksums. `TESTS.md` documents manual checks.
 
@@ -290,19 +320,7 @@ textures, not live applications. Existing JavaScript tests also check both Shell
 shader APIs and the new uniforms. Current validation is eight JavaScript suites
 and fifteen Python tests, including those eight pixel checks, plus formatting.
 
-The user requested a version bump, Debian package, and local installation.
-22.51.13 was built from the current working tree, including the new shader module,
-and installed successfully. Installed files match the verified package. The user
-was told to log out/in to load it; do not assume the session has reloaded.
-The user subsequently confirmed improved appearance and requested committing,
-pushing, and tagging 22.51.13, including this handoff. No feature work remains
-outstanding from that release request. The subsequent unlock shortcut registration
-fix above is implemented, tested, packaged, and installed locally as 22.51.14.
-The user has requested committing, pushing, and tagging this update. Release
-checks passed all 194 JavaScript tests and all fifteen Python tests; the native
-GTK test needed an unsandboxed rerun for its isolated private socket. The prior
-22.51.13 release and its workflows were verified successful through GitHub.
-Live desktop verification after log out/in remains pending. Check Git and GitHub
-for the resulting 22.51.14 commit, tag, workflows, and published assets.
-Full manual visual testing remains a limitation, not authorization to alter the
-user's session.
+The remaining checks are live VirtualBox rendering and tile placement during
+client resizes, shortcut behavior across lock/unlock, and the broader manual
+visual compatibility matrix. Automated checks do not establish that the desktop
+session has loaded the current source or that these live symptoms are resolved.

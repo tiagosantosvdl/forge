@@ -4,6 +4,71 @@ const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 
+test("client resizes restore the emitting window's tile without changing focus", () => {
+  for (const focusState of ["maximized", "untracked", "absent", "normal"]) {
+    const h = harness();
+    const monitor = h.monitor();
+    const guest = h.window("VirtualBox");
+    const other = h.window("other");
+    monitor.appendChild(guest.node);
+    monitor.appendChild(other.node);
+    const tile = { x: 500, y: 0, width: 500, height: 500 };
+    guest.node.renderRect = tile;
+    Object.assign(guest.rect, { x: 600, y: 50, width: 300, height: 200 });
+    other.meta.is_maximized = () => focusState === "maximized";
+    h.focus(
+      focusState === "absent"
+        ? null
+        : focusState === "untracked"
+        ? h.window("untracked").meta
+        : other.meta
+    );
+    const reasons = [];
+    h.wm.renderTree = (reason) => {
+      reasons.push(reason);
+      h.tree.apply(h.tree);
+    };
+    h.wm.updateMetaPositionSize(guest.meta, "size-changed");
+    assert.deepEqual(reasons, ["size-changed"], focusState);
+    assert.ok(
+      guest.calls.some(
+        (call) => Array.isArray(call) && JSON.stringify(call) === '["resize",true,500,0,500,500]'
+      ),
+      focusState
+    );
+    assert.equal(guest.calls.includes("focus"), false);
+  }
+});
+
+test("client geometry notifications preserve grabs and fullscreen/maximized windows", () => {
+  const h = harness();
+  const monitor = h.monitor();
+  const guest = h.window("VirtualBox");
+  const other = h.window("other");
+  monitor.appendChild(guest.node);
+  monitor.appendChild(other.node);
+  h.focus(other.meta);
+  let renders = 0;
+  let resizes = 0;
+  h.wm.renderTree = () => renders++;
+  h.wm._handleResizing = (node) => {
+    assert.equal(node, other.node);
+    resizes++;
+  };
+  other.node.grabMode = vm.runInContext("GRAB_TYPES.RESIZING", h.context);
+  h.wm.updateMetaPositionSize(guest.meta, "size-changed");
+  assert.equal(resizes, 0);
+  h.wm.updateMetaPositionSize(other.meta, "size-changed");
+  assert.equal(resizes, 1);
+  other.node.grabMode = null;
+  guest.meta.is_fullscreen = () => true;
+  h.wm.updateMetaPositionSize(guest.meta, "size-changed");
+  guest.meta.is_fullscreen = () => false;
+  guest.meta.is_maximized = () => true;
+  h.wm.updateMetaPositionSize(guest.meta, "size-changed");
+  assert.equal(renders, 0);
+});
+
 // Actual extension classes, with desktop timing, files and actors controlled by each test.
 // FORGE_SOURCE_ROOT allows the same regressions to be run against the pre-fix snapshot.
 function harness() {

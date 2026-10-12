@@ -36,6 +36,8 @@ When changing Appearance > Border radius:
 - [ ] Existing and newly opened GTK, Qt, and custom-decorated windows use the selected radius.
 - [ ] Floating windows and dialogs round independently of the focused-window border toggle.
 - [ ] Resizing and moving between differently scaled monitors keeps clipping aligned with the frame.
+- [ ] VirtualBox guest resolution changes leave the host window undistorted, including its status bar, without switching focus.
+- [ ] With Forge tiling enabled, VirtualBox guest resolution changes restore its assigned tile without switching focus, including while another window is maximized or focus is absent.
 - [ ] Radius 8 with focus widths 1, 2, and 3 has no gap between the focus stroke and GTK window corners; split hints share the outer edge.
 - [ ] Changing the radius or border width updates the focused outline immediately.
 - [ ] Clipping remains aligned on windows with client-side shadows and during overview animations.

@@ -149,13 +149,23 @@ test("both shader APIs refresh uniforms from the current render target on every 
     const context = helpers();
     const uniforms = new Map();
     let paints = 0;
+    let repaints = 0;
     let target = [true, 406, 246];
+    let frame = { x: 0, y: 0, width: 200, height: 120 };
+    let buffer = { ...frame };
+    let scale = 2;
     const actor = {
-      get_resource_scale: () => 2,
+      width: 200,
+      height: 120,
+      meta_window: {
+        get_frame_rect: () => frame,
+        get_buffer_rect: () => buffer,
+      },
+      get_resource_scale: () => scale,
       get_paint_volume: () => ({
         get_origin: () => ({ x: 0, y: 0 }),
-        get_width: () => 200,
-        get_height: () => 120,
+        get_width: () => actor.width,
+        get_height: () => actor.height,
       }),
     };
     class Effect {
@@ -165,6 +175,9 @@ test("both shader APIs refresh uniforms from the current render target on every 
       }
       get_actor() {
         return actor;
+      }
+      queue_repaint() {
+        repaints++;
       }
       get_target_size() {
         return target;
@@ -199,7 +212,8 @@ test("both shader APIs refresh uniforms from the current render target on every 
     const effect = new context.WindowCornerEffect();
     if (legacy) effect.vfunc_build_pipeline();
     else effect.vfunc_get_static_snippet();
-    effect.update({ size: [200, 120], bounds: [0, 0, 200, 120], radius: 8 });
+    effect.update(8);
+    assert.equal(repaints, 1);
     effect.vfunc_paint_target({}, {});
     assert.deepEqual(uniforms.get("forge_size"), [203, 123]);
     assert.deepEqual(uniforms.get("forge_origin"), [-2, -2]);
@@ -208,14 +222,30 @@ test("both shader APIs refresh uniforms from the current render target on every 
     assert.deepEqual(uniforms.get("forge_straight_alpha"), [legacy ? 1 : 0]);
     let blend;
     if (legacy) effect.get_pipeline = () => ({ set_blend: (value) => (blend = value) });
+    // The client resizes after the last update; no allocation/window signal or
+    // focus change has reached the manager before this paint.
+    actor.width = 400;
+    actor.height = 240;
+    frame = { x: 10, y: 10, width: 380, height: 220 };
+    buffer = { x: 0, y: 0, width: 400, height: 240 };
     target = [true, 806, 486];
-    effect.update({ bounds: [0, 0, 400, 240], radius: 12 });
     effect.vfunc_paint_target({}, {});
     assert.deepEqual(uniforms.get("forge_size"), [403, 243]);
+    assert.deepEqual(uniforms.get("forge_bounds"), [10, 10, 390, 230]);
+    assert.deepEqual(uniforms.get("forge_radius"), [8]);
+    // Changing resource scale also needs no geometry update.
+    scale = 1;
+    target = [true, 403, 243];
+    effect.vfunc_paint_target({}, {});
+    assert.deepEqual(uniforms.get("forge_size"), [403, 243]);
+    assert.deepEqual(uniforms.get("forge_pixel_step"), [1]);
+    effect.update(12);
+    assert.equal(repaints, 2);
+    effect.vfunc_paint_target({}, {});
     assert.deepEqual(uniforms.get("forge_radius"), [12]);
     assert.deepEqual(uniforms.get("forge_straight_alpha"), [0]);
     if (legacy) assert.equal(blend, "RGBA = ADD (SRC_COLOR, DST_COLOR * (1-SRC_COLOR[A]))");
-    assert.equal(paints, 2);
+    assert.equal(paints, 4);
   }
 });
 
@@ -241,8 +271,8 @@ function managerHarness() {
     });
   }
   class Effect {
-    update(geometry) {
-      this.geometry = geometry;
+    update(radius) {
+      this.radius = radius;
     }
     set_enabled(enabled) {
       this.enabled = enabled;
@@ -327,7 +357,7 @@ test("existing windows respond to radius, fullscreen, maximize, resize, and disa
     assert.equal(actor.effect.enabled, true);
     actor.width = 200;
     actor.emit("notify::allocation");
-    assert.equal(actor.effect.geometry.size[0], 200);
+    assert.equal(actor.effect.radius, 14);
     actor.meta_window.fullscreen = true;
     actor.meta_window.emit("notify::fullscreen");
     assert.equal(actor.effect.enabled, false);
