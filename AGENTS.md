@@ -45,16 +45,18 @@ automatically. Do not use subagents unless explicitly authorized.
 
 - Repository: https://github.com/tiagosantosvdl/forge; `origin` uses SSH; branch `main`.
 - Extension UUID: `forge@tiagosantosvdl.github.com`.
-- Current source version: **22.51.15**; installed version last verified: **22.51.14**.
+- Current source and installed version: **22.51.15**.
 - Release destination: https://github.com/tiagosantosvdl/forge/releases/tag/v22.51.15
-- Local `main` and remote `main` matched before preparing 22.51.15; its tag was absent.
-- Version 22.51.14 was checksum-verified and installed locally. All 71 installed
-  extension files matched its corresponding ZIP.
+- Release commit: `58ce931`; annotated tag `v22.51.15` was pushed with `main`.
+- GitHub testing and release workflows both completed successfully.
+- Published ZIP and Debian package checksums passed and their payloads match.
+  The published `.deb` was installed successfully; the package query reports
+  22.51.15 and all 71 installed extension files match the published ZIP.
 - System path: `/usr/share/gnome-shell/extensions/forge@tiagosantosvdl.github.com`.
 - Release assets/checksums are in ignored `dist/`; published assets are cached
   under `dist/published-<version>/`.
 - Live verification of the VirtualBox rendering/tiling changes remains pending.
-  Publication and installation of 22.51.15 are not yet verified.
+  Log out/in is required to load the update; session reload is unconfirmed.
 
 Declared Shell support is 45–51; the inspected local Shell was 50.1. Automated
 checks are not a complete visual compatibility matrix. Installation does not
@@ -203,8 +205,8 @@ tests fail against the previous source and pass with the fix. All eight
 JavaScript suites pass (196 tests); all fifteen Python tests pass with the
 isolated native GTK socket test rerun outside the sandbox. `TESTS.md` includes
 the pending VirtualBox manual checks. Synthetic tests do not exercise live
-compositor texture reuse or VirtualBox. These changes are source-only and have
-not been installed or verified on the live desktop.
+compositor texture reuse or VirtualBox. These changes are packaged, published and
+installed as 22.51.15; their live desktop behavior remains unverified.
 
 Okular is a Flatpak. Its Qt decoration plugin controls titlebar glyphs; normal
 icon overrides did not change them. The user confirmed this launch gives the
