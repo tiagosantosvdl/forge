@@ -52,6 +52,15 @@ checks are not a complete visual compatibility matrix. Installation does not
 reload an already imported extension; the user was told to log out/in. Do not
 assume they did so or assume Forge is currently enabled.
 
+README follows the structure used by the sibling Dash to Panel and ArcMenu
+forks: project identity, package installation and checksum verification, source
+builds, configuration, development checks, releases, issues, and credits.
+Forge's detailed layout, corner, integration, and shortcut documentation and
+historical version descriptions are retained. Installation dependencies and
+release instructions were checked against metadata, packaging, and workflows;
+the documentation-only update passed Prettier 2.7.1, local-link checks, and
+`git diff --check`.
+
 ## Implemented behavior and code
 
 ### Window corners

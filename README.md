@@ -1,53 +1,33 @@
 # Forge
 
-A GNOME Shell tiling and window manager, maintained in this
-[fork](https://github.com/tiagosantosvdl/forge) of
-[forge-ext/forge](https://github.com/forge-ext/forge).
+A GNOME Shell tiling and window manager with split containers, tabbed and
+stacked groups, and remembered layouts across sessions and display changes.
 
 ## Project status
 
-This fork is 100% maintained using OpenAI Codex.
+This is [@tiagosantosvdl's fork](https://github.com/tiagosantosvdl/forge) of
+[upstream Forge](https://github.com/forge-ext/forge), maintained using OpenAI
+Codex. This fork provides its own extension packages.
 
-This fork adds remembered layouts across sessions and display changes, fixes
-window dragging and restoration, and incorporates fixes from 34 upstream pull
-requests. Adapted fixes carry comments identifying the PR submitters and numbers.
-They cover resizing and minimum sizes, split members in tabbed groups, focus borders,
-window lifetime and signal cleanup, floating rules, and configuration recovery.
+- Current version: **22.51.13**.
+- Extension UUID: `forge@tiagosantosvdl.github.com`.
+- Supported GNOME Shell versions: **45–51**, as declared in
+  [metadata.json](metadata.json), with X11 and Wayland support. This is not a
+  completed compatibility test matrix.
+- Settings schema: `org.gnome.shell.extensions.forge`, shared with upstream to
+  preserve existing preferences.
 
-The extension declares compatibility with GNOME Shell 45–51 and supports X11 and
-Wayland. This declaration is not a completed test matrix for every version.
-Current validation includes automated regression tests, native GJS configuration and
-stylesheet checks, formatting checks, and an extension package build. Full
-GNOME Shell validation of the latest upstream fixes is still pending. Repository
-changes take effect in an installed extension only after rebuilding, installing,
-and reloading it.
+The fork adds remembered layouts, window corner clipping, coordination with
+Ubuntu Tiling Assistant, and shortcut conflict notifications. It also incorporates
+fixes from 34 upstream pull requests covering resizing, minimum sizes, split
+members in tabbed groups, focus borders, window cleanup, floating rules, and
+configuration recovery. Adapted fixes identify the PR submitters and numbers
+in source comments.
 
-Version 22.51.13 improves continuous corner clipping, native edge smoothing,
-shadow alignment, and alpha blending. Cut-out tips no longer retain window
-color, and existing native rounded edges are not smoothed twice.
-
-Version 22.51.12 hides focus borders when global tiling is disabled. Shortcut
-conflict warnings remain in the notification list and open Forge Preferences when
-clicked, and disappear when conflicts are resolved.
-
-Version 22.51.11 adds window clipping and GTK/Qt theme overrides to the border
-radius setting, preserving square fullscreen and maximized corners. Focus borders
-follow the actual stroke width to avoid gaps at the corners. Ubuntu Tiling Assistant
-can stay enabled: Forge pauses its assistance while global tiling is active and
-restores the previous preferences when tiling or Forge is disabled.
-
-Version 22.51.9 keeps newly opened windows on their opening monitor and workspace,
-uses placement history only within that location, and hides tab bars when a group
-has only one window left. It also prevents nested tabbed and stacked groups while
-retaining splits inside tabs. Existing saved layouts are migrated without changing
-monitor or workspace assignments; reconnecting displays can still restore existing
-windows to their saved locations.
-Version 22.51.6 keeps tab icons matched to their windows and refreshes titles and
-available app icons as they change, including while dragging or reshuffling groups.
-Version 22.51.5 preserves saved split directions and group order while apps
-reopen gradually, preventing a temporarily empty column from collapsing the
-layout into one tabbed group. Session sizing and incremental window restoration
-from 22.51.4 remain supported.
+Automated checks cover regression behavior, native preferences and configuration,
+shader rendering, formatting, and release packaging. Validate desktop behavior
+in a running GNOME session separately. Rebuilding and installing do not reload
+code already imported by Shell.
 
 ## Features
 
@@ -62,7 +42,136 @@ from 22.51.4 remain supported.
 - Remembered layouts per set of active displays, including workspace membership
 - Customizable shortcuts, colors, gaps, and decorations in preferences
 
-## Window corners
+## Installation
+
+Download the packages from this repository's
+[GitHub Releases](https://github.com/tiagosantosvdl/forge/releases).
+Each release includes an extension ZIP, a Debian package, and `SHA256SUMS`.
+
+Disable upstream Forge before enabling this fork. The fork has a different UUID
+from upstream's `forge@jmmaranan.com`, so installation does not replace upstream
+automatically. Existing Forge settings and layout files are retained. Choose one
+installation method: a per-user copy takes precedence over a system-wide copy
+with the same UUID.
+
+### Debian / Ubuntu package
+
+For release `22.51.13`, install the downloaded package:
+
+```sh
+sudo apt install ./gnome-shell-extension-forge-tiagosantosvdl_22.51.13_all.deb
+```
+
+The package declares dependencies on GNOME Shell 45–51 and `gir1.2-adw-1`.
+It installs under
+`/usr/share/gnome-shell/extensions/forge@tiagosantosvdl.github.com/`.
+
+Log out and back in after installation or an upgrade to load the installed code.
+Enable the extension with:
+
+```sh
+gnome-extensions enable forge@tiagosantosvdl.github.com
+```
+
+If switching from a per-user installation to the Debian package, uninstall the
+per-user copy first with
+`gnome-extensions uninstall forge@tiagosantosvdl.github.com`.
+
+### Per-user ZIP
+
+Install the downloaded ZIP:
+
+```sh
+gnome-extensions install --force ./forge@tiagosantosvdl.github.com-22.51.13.zip
+```
+
+Install libadwaita's introspection bindings (`gir1.2-adw-1` on Debian / Ubuntu)
+for preferences. Log out and back in, then enable the extension using the command
+above. Extension Manager's browse catalog is separate from these GitHub releases.
+
+### Verify downloads
+
+Place `SHA256SUMS` and both release packages in the same directory, then run:
+
+```sh
+sha256sum -c SHA256SUMS
+```
+
+## Build from source
+
+On Debian / Ubuntu, install the build tools and clone this repository:
+
+```sh
+sudo apt install git gettext libglib2.0-bin make python3 dpkg-dev zip
+git clone https://github.com/tiagosantosvdl/forge.git
+cd forge
+make release
+```
+
+Building packages stages the extension under `temp/` without installing or
+activating it. The release version comes from `package.json`. For version
+`22.51.13`, the output is:
+
+- `dist/forge@tiagosantosvdl.github.com-22.51.13.zip`
+- `dist/gnome-shell-extension-forge-tiagosantosvdl_22.51.13_all.deb`
+- `dist/SHA256SUMS`
+
+Verify and install the local Debian build:
+
+```sh
+(cd dist && sha256sum -c SHA256SUMS)
+sudo apt install ./dist/gnome-shell-extension-forge-tiagosantosvdl_22.51.13_all.deb
+```
+
+Alternatively, build and install a per-user copy:
+
+```sh
+make build
+make install
+```
+
+`make install` copies the existing build from `temp/` into
+`~/.local/share/gnome-shell/extensions/forge@tiagosantosvdl.github.com`; it does
+not build it. After either installation method, log out and back in and enable
+the extension as described above.
+
+Build targets regenerate translation files and contributor metadata, so inspect
+those changes before committing.
+
+## Configuration and logs
+
+Open preferences with:
+
+```sh
+gnome-extensions prefs forge@tiagosantosvdl.github.com
+```
+
+Preferences cover tiling behavior, workspaces, shortcuts, colors, gaps, and
+window decorations. Existing saved preferences take precedence over repository
+defaults.
+
+| Data                 | Default path                                      |
+| -------------------- | ------------------------------------------------- |
+| Window rules         | `~/.config/forge/config/windows.json`             |
+| Stylesheet overrides | `~/.config/forge/stylesheet/forge/stylesheet.css` |
+| Remembered layouts   | `~/.local/state/forge/layouts.json`               |
+
+Configuration paths honor `XDG_CONFIG_HOME`; remembered layouts honor
+`XDG_STATE_HOME`. Invalid window rules fall back to defaults, with a `.bak`
+copy of nonempty invalid content. Incomplete stylesheets gain missing defaults
+while retaining custom properties, and the previous stylesheet is backed up.
+
+For debug logging, build and install with `make dev`, then reload the session.
+This enables logging in the installed build. Follow Forge messages with:
+
+```sh
+journalctl --user --follow --output=short-iso --grep '\[Forge\]'
+```
+
+Debug logs can contain application names and window titles; review them before
+sharing them in an issue.
+
+### Window corners
 
 Appearance → Border radius controls window corners as well as Forge's focus
 borders and tiling previews. Forge applies compositor clipping to regular windows
@@ -91,7 +200,7 @@ It samples the existing shadow outside the frame and moves that profile around
 the rounded contour. This preserves shadow color without retaining titlebar
 pixels in the cut-out tips; arbitrary client shadow shapes may differ slightly.
 
-## Remembered layouts
+### Remembered layouts
 
 Forge saves monitor placement, workspace membership, groups, and split directions
 in `$XDG_STATE_HOME/forge/layouts.json`, normally
@@ -121,8 +230,8 @@ to a previously used configuration restores its saved layout after monitor
 changes settle.
 
 Workspace additions and removals are handled, including renumbering saved
-workspace assignments after removal. When reconnecting displays, if a saved workspace is unavailable, its
-groups use the last available workspace; Forge does not create workspaces to
+workspace assignments after removal. When reconnecting displays, if a saved
+workspace is unavailable, its groups use the last available workspace; Forge does not create workspaces to
 match saved assignments. GNOME manages switching workspaces and moving windows
 between them.
 
@@ -144,7 +253,7 @@ This feature remembers placement and grouping; it does not launch apps or
 restore browser tabs. To reset it, disable Forge, remove `layouts.json`, and
 enable Forge again.
 
-## Tab titles and icons
+### Tab titles and icons
 
 Forge identifies apps from their desktop entries and window identity, including
 Edge apps, and refreshes tabs when GNOME updates that identity. Titles update as
@@ -155,7 +264,7 @@ member tabs and do not rearrange windows or save a new layout.
 On current GNOME, browser favicons and notification badges drawn by an app may
 not be exposed to Forge; tabs use the app icon available through GNOME.
 
-## Ubuntu Tiling Assistant
+### Ubuntu Tiling Assistant
 
 Ubuntu Tiling Assistant can remain enabled alongside Forge. While Forge's global
 tiling mode is on, Forge temporarily pauses its edge dragging, group resizing,
@@ -169,96 +278,6 @@ Tiling Assistant after Forge and recreating its handlers after unlocking. A
 switch made during a drag or resize waits until the grab ends. This applies to
 Ubuntu's `tiling-assistant@ubuntu.com`; pausing drag and resize assistance uses
 its internal handlers and may need adjustment if Ubuntu changes those APIs.
-
-## Installation
-
-Download the ZIP or Debian package from
-[GitHub Releases](https://github.com/tiagosantosvdl/forge/releases).
-
-Install the ZIP for your user:
-
-```bash
-gnome-extensions install --force forge@tiagosantosvdl.github.com-22.51.13.zip
-```
-
-Log out and back in, then enable Forge in Extension Manager or with
-`gnome-extensions enable forge@tiagosantosvdl.github.com`. The ZIP uses GNOME's
-standard extension format; Extension Manager's browse catalog is separate from
-these GitHub releases.
-
-On Debian or Ubuntu with GNOME Shell 45–51, install the system-wide package:
-
-```bash
-sudo apt install ./gnome-shell-extension-forge-tiagosantosvdl_22.51.13_all.deb
-```
-
-Log out and back in, then enable Forge. A user-local installation with this
-fork's UUID takes precedence over the system-wide package; uninstall that local
-copy with `gnome-extensions uninstall forge@tiagosantosvdl.github.com` before
-switching to the Debian package.
-
-### Build from source
-
-Build dependencies are `make`, Git, `gettext`, and GLib tools including
-`glib-compile-schemas`. Install `zip` to build a distributable archive. Node.js
-18+ and npm are needed for development checks, but not to run the extension.
-
-From a checkout:
-
-```bash
-make build
-make install
-# After reloading GNOME Shell, enable Forge if needed:
-gnome-extensions enable forge@tiagosantosvdl.github.com
-```
-
-`make install` copies the existing build from `temp/` into
-`~/.local/share/gnome-shell/extensions/forge@tiagosantosvdl.github.com`; it does not build it.
-This fork uses `forge@tiagosantosvdl.github.com`, distinct from upstream's
-`forge@jmmaranan.com`, so installing it does not replace upstream. Disable the
-upstream extension before enabling this fork so only one tiling manager runs.
-The existing Forge settings and layout files are retained.
-
-Log out and back in on Wayland to load newly installed code. On X11, restart
-GNOME Shell with Alt+F2, then `r`. Save your work before restarting the session.
-Open extension preferences with:
-
-```bash
-gnome-extensions prefs forge@tiagosantosvdl.github.com
-```
-
-## Releases
-
-The release workflow runs checks, builds both packages, and attaches them plus
-`SHA256SUMS` to a GitHub Release when a `vMAJOR.MINOR.PATCH` tag is pushed.
-The tag must match `package.json`. Prerelease tags such as `v22.51.13-rc.1` are
-also supported and produce GitHub prereleases.
-
-For each release, update the version in `package.json`, both root version fields
-in `package-lock.json`, and `version-name` in `metadata.json` (use a space in
-place of the prerelease hyphen for GNOME). Commit the changes, then tag and push:
-
-```bash
-git tag -a v22.51.13 -m "Forge 22.51.13"
-git push origin main v22.51.13
-```
-
-Publishing a release manually also builds and attaches the packages. Running
-the workflow with **Run workflow** builds downloadable workflow artifacts
-without publishing a release.
-
-Build the same packages locally with `make release`. This additionally needs
-Python 3 and `dpkg-deb` (from `dpkg`). Outputs are under `dist/`:
-
-Release filenames follow the same convention across these extensions: `<uuid>-<version>.zip`, `gnome-shell-extension-<name>-tiagosantosvdl_<debian-version>_all.deb`, and `SHA256SUMS`. Debian prerelease versions use `~rc.1` where ZIP versions use `-rc.1`.
-
-- `forge@tiagosantosvdl.github.com-22.51.13.zip` for per-user installation
-- `gnome-shell-extension-forge-tiagosantosvdl_22.51.13_all.deb` for system-wide installation
-- `SHA256SUMS` for verification with `cd dist && sha256sum -c SHA256SUMS`
-
-The Debian package is architecture-independent and requires a supported GNOME
-Shell version. Its files live under
-`/usr/share/gnome-shell/extensions/forge@tiagosantosvdl.github.com/`.
 
 ## Keyboard shortcuts
 
@@ -290,98 +309,79 @@ Stacked layout uses Ctrl+Alt+Super+S, and vertical splitting uses
 Ctrl+Alt+Super+V. Snapping uses Ctrl+Alt+Super, avoiding common screenshot,
 lock-screen, minimize, terminal, and workspace-navigation bindings.
 
-| Action | Shortcut |
-| --- | --- |
-| Increase active window size left | `<Ctrl> + <Super> + y` |
-| Decrease active window size left | `<Ctrl> + <Shift> + <Super> + o` |
-| Increase active window size bottom | `<Ctrl> + <Super> + u` |
-| Decrease active window size bottom | `<Ctrl> + <Shift> + <Super> + i` |
-| Increase active window size top | `<Ctrl> + <Super> + i` |
-| Decrease active window size top | `<Ctrl> + <Shift> + <Super> + u` |
-| Increase active window size right | `<Ctrl> + <Super> + o` |
-| Decrease active window size right | `<Ctrl> + <Shift> + <Super> + y` |
-| Open preferences | `<Super> + period` |
-| Toggle tiling mode |`<Super> + w` |
-| Focus left | `<Alt> + <Super> + h` |
-| Focus right | `<Alt> + <Super> + l` |
-| Focus up | `<Alt> + <Super> + k` |
-| Focus down | `<Alt> + <Super> + j` |
-| Swap current window with last active | `<Super> + Return` |
-| Swap active window left | `<Alt> + <Ctrl> + <Super> + h` |
-| Swap active window right | `<Alt> + <Ctrl> + <Super> + l` |
-| Swap active window up | `<Alt> + <Ctrl> + <Super> + k` |
-| Swap active window down | `<Alt> + <Ctrl> + <Super> + j` |
-| Move active window left | `<Alt> + <Shift> + <Super> + h` |
-| Move active window right | `<Alt> + <Shift> + <Super> + l` |
-| Move active window up | `<Alt> + <Shift> + <Super> + k` |
-| Move active window down | `<Alt> + <Shift> + <Super> + j` |
-| Split container horizontally | `<Super> + z` |
-| Split container vertically | `<Ctrl> + <Alt> + <Super> + v` |
-| Toggle split container | `<Super> + g` |
-| Gap increase | `<Ctrl> + <Super> + Plus` |
-| Gap decrease | `<Ctrl> + <Super> + Minus` |
-| Toggle focus hint | `<Super> + x` |
-| Toggle active workspace tiling | `<Shift> + <Super> + w` |
-| Toggle stacked layout | `<Ctrl> + <Alt> + <Super> + s` |
-| Toggle tabbed layout | `<Shift> + <Super> + t` |
-| Show/hide tab decoration | `<Ctrl> + <Alt> + y` |
-| Activate tile drag-drop | `Start dragging - Mod key configuration in prefs` |
-| Snap active window to center | `<Ctrl> + <Alt> + <Super> + c` |
-| Snap active window left two thirds | `<Ctrl> + <Alt> + <Super> + e` |
-| Snap active window right two thirds | `<Ctrl> + <Alt> + <Super> + t` |
-| Snap active window left third | `<Ctrl> + <Alt> + <Super> + d` |
-| Snap active window right third | `<Ctrl> + <Alt> + <Super> + g` |
-| Persist toggle floating for active window | `<Super> + c` |
-| Persist toggle floating for active window and its window class | `<Super><Shift> + c` |
+| Action                                                         | Shortcut                                          |
+| -------------------------------------------------------------- | ------------------------------------------------- |
+| Increase active window size left                               | `<Ctrl> + <Super> + y`                            |
+| Decrease active window size left                               | `<Ctrl> + <Shift> + <Super> + o`                  |
+| Increase active window size bottom                             | `<Ctrl> + <Super> + u`                            |
+| Decrease active window size bottom                             | `<Ctrl> + <Shift> + <Super> + i`                  |
+| Increase active window size top                                | `<Ctrl> + <Super> + i`                            |
+| Decrease active window size top                                | `<Ctrl> + <Shift> + <Super> + u`                  |
+| Increase active window size right                              | `<Ctrl> + <Super> + o`                            |
+| Decrease active window size right                              | `<Ctrl> + <Shift> + <Super> + y`                  |
+| Open preferences                                               | `<Super> + period`                                |
+| Toggle tiling mode                                             | `<Super> + w`                                     |
+| Focus left                                                     | `<Alt> + <Super> + h`                             |
+| Focus right                                                    | `<Alt> + <Super> + l`                             |
+| Focus up                                                       | `<Alt> + <Super> + k`                             |
+| Focus down                                                     | `<Alt> + <Super> + j`                             |
+| Swap current window with last active                           | `<Super> + Return`                                |
+| Swap active window left                                        | `<Alt> + <Ctrl> + <Super> + h`                    |
+| Swap active window right                                       | `<Alt> + <Ctrl> + <Super> + l`                    |
+| Swap active window up                                          | `<Alt> + <Ctrl> + <Super> + k`                    |
+| Swap active window down                                        | `<Alt> + <Ctrl> + <Super> + j`                    |
+| Move active window left                                        | `<Alt> + <Shift> + <Super> + h`                   |
+| Move active window right                                       | `<Alt> + <Shift> + <Super> + l`                   |
+| Move active window up                                          | `<Alt> + <Shift> + <Super> + k`                   |
+| Move active window down                                        | `<Alt> + <Shift> + <Super> + j`                   |
+| Split container horizontally                                   | `<Super> + z`                                     |
+| Split container vertically                                     | `<Ctrl> + <Alt> + <Super> + v`                    |
+| Toggle split container                                         | `<Super> + g`                                     |
+| Gap increase                                                   | `<Ctrl> + <Super> + Plus`                         |
+| Gap decrease                                                   | `<Ctrl> + <Super> + Minus`                        |
+| Toggle focus hint                                              | `<Super> + x`                                     |
+| Toggle active workspace tiling                                 | `<Shift> + <Super> + w`                           |
+| Toggle stacked layout                                          | `<Ctrl> + <Alt> + <Super> + s`                    |
+| Toggle tabbed layout                                           | `<Shift> + <Super> + t`                           |
+| Show/hide tab decoration                                       | `<Ctrl> + <Alt> + y`                              |
+| Activate tile drag-drop                                        | `Start dragging - Mod key configuration in prefs` |
+| Snap active window to center                                   | `<Ctrl> + <Alt> + <Super> + c`                    |
+| Snap active window left two thirds                             | `<Ctrl> + <Alt> + <Super> + e`                    |
+| Snap active window right two thirds                            | `<Ctrl> + <Alt> + <Super> + t`                    |
+| Snap active window left third                                  | `<Ctrl> + <Alt> + <Super> + d`                    |
+| Snap active window right third                                 | `<Ctrl> + <Alt> + <Super> + g`                    |
+| Persist toggle floating for active window                      | `<Super> + c`                                     |
+| Persist toggle floating for active window and its window class | `<Super><Shift> + c`                              |
 
-## Configuration and logs
+## Development and verification
 
-| Data | Default path |
-| --- | --- |
-| Window rules | `~/.config/forge/config/windows.json` |
-| Stylesheet overrides | `~/.config/forge/stylesheet/forge/stylesheet.css` |
-| Remembered layouts | `~/.local/state/forge/layouts.json` |
+Source files live in `lib/extension/`, shared helpers in `lib/shared/`,
+preferences in `lib/prefs/`, and tests in `tests/`. Packaging is handled by the
+[Makefile](Makefile) and [scripts/package-release.py](scripts/package-release.py).
+Agent guidance is in [AGENTS.md](AGENTS.md).
 
-Configuration paths honor `XDG_CONFIG_HOME`; remembered layouts honor
-`XDG_STATE_HOME`. Invalid window rules fall back to defaults, with a `.bak`
-copy of nonempty invalid content. Incomplete stylesheets gain missing defaults
-while retaining custom properties, and the previous stylesheet is backed up.
+Node.js 18+ and npm are needed for development checks, but not to run the
+extension. Install development dependencies and run the relevant checks:
 
-For debug logging, build and install with `make dev`, then reload the session.
-This enables logging in the installed build. Follow Forge messages with:
-
-```bash
-journalctl --user --follow --output=short-iso --grep '\[Forge\]'
-```
-
-Debug logs can contain application names and window titles. When reporting a
-bug, include the GNOME version, X11 or Wayland session type, monitor arrangement,
-workspace and group layout, steps to reproduce, and relevant log messages.
-
-## Development
-
-```bash
-npm install
+```sh
+npm ci
 npm test                          # Prettier formatting check
-npm run test:unit                 # Automated regression tests
-python3 -m unittest discover -s tests -p '*test.py'  # Packaging and native preferences tests
-npm run format                    # Apply formatting
-make dist                         # Build forge@tiagosantosvdl.github.com.zip
+npm run test:unit                 # JavaScript regression tests
+python3 -m unittest discover -s tests -p '*test.py'
+glib-compile-schemas --strict --dry-run schemas
+git diff --check
 ```
 
-Native shortcut preferences tests use GJS, GTK 4, libadwaita, GNOME settings
-schemas, and `gtk4-broadwayd`. They run with a private display and in-memory
-settings; both CI workflows install these dependencies.
+Use `npm run format` to apply formatting. JavaScript tests can also run without
+npm dependencies with `node --test tests/*.test.js`. Use `make dist` to build an
+unversioned extension ZIP.
 
-The automated tests can also run without npm dependencies:
-
-```bash
-node --test tests/*.test.js
-```
-
-They cover drag lifecycle, layout persistence, and upstream regressions using
-the extension's actual classes with controlled desktop APIs. They do not
-require a running GNOME Shell or prove desktop behavior on their own.
+JavaScript tests use the extension's actual classes with controlled desktop APIs.
+Native tests use GJS, GTK 4, libadwaita, GNOME settings schemas, and
+`gtk4-broadwayd`, with a private display and in-memory settings. Shader pixel
+tests use isolated surfaceless EGL/GLES and skip when it is unavailable.
+These checks do not prove live desktop behavior or compatibility across all
+supported GNOME versions. See [TESTS.md](TESTS.md) for manual checks.
 
 `make dev` builds and installs a debug extension without restarting the session.
 `make test-nested` launches a nested Wayland shell where supported; it requires
@@ -389,9 +389,70 @@ compatible GNOME binaries and settings schemas and is not an isolated extension
 installation. `make test` installs into the user extension directory before
 launching that shell. `make test-x` reinstalls and restarts the X11 shell.
 The default `make` target and `make prod` also restart the session, which logs
-out a Wayland session. Use explicit build and install commands when you want to
-control when the new code loads.
+out a Wayland session. Use explicit build and install commands to control when
+the new code loads.
 
-Build targets regenerate translation files and contributor metadata, so inspect
-those changes before committing. Keep desktop testing separate from the
-unit-test and packaging results when reporting validation.
+## Releases
+
+Update the version in `package.json`, both root version fields in
+`package-lock.json`, and `version-name` in `metadata.json`. Update the version
+examples in this README and [RELEASE_NOTES.md](RELEASE_NOTES.md). Release tags
+must match `package.json`, such as `v22.51.13`.
+
+The [release workflow](.github/workflows/release.yml) validates the source,
+builds packages, and publishes them when a matching version tag is pushed or a
+GitHub Release is published. The manual **Run workflow** option builds
+downloadable artifacts without publishing a release.
+
+Prerelease tags such as `v22.51.13-rc.1` use package version `22.51.13-rc.1`,
+GNOME `version-name` `22.51.13 rc.1`, and Debian version `22.51.13~rc.1`.
+The workflow marks those releases as prereleases.
+
+### Recent changes
+
+Version 22.51.13 improves continuous corner clipping, native edge smoothing,
+shadow alignment, and alpha blending. Cut-out tips no longer retain window
+color, and existing native rounded edges are not smoothed twice.
+
+Version 22.51.12 hides focus borders when global tiling is disabled. Shortcut
+conflict warnings remain in the notification list and open Forge Preferences when
+clicked, and disappear when conflicts are resolved.
+
+Version 22.51.11 adds window clipping and GTK/Qt theme overrides to the border
+radius setting, preserving square fullscreen and maximized corners. Focus borders
+follow the actual stroke width to avoid gaps at the corners. Ubuntu Tiling Assistant
+can stay enabled: Forge pauses its assistance while global tiling is active and
+restores the previous preferences when tiling or Forge is disabled.
+
+Version 22.51.9 keeps newly opened windows on their opening monitor and workspace,
+uses placement history only within that location, and hides tab bars when a group
+has only one window left. It also prevents nested tabbed and stacked groups while
+retaining splits inside tabs. Existing saved layouts are migrated without changing
+monitor or workspace assignments; reconnecting displays can still restore existing
+windows to their saved locations.
+Version 22.51.6 keeps tab icons matched to their windows and refreshes titles and
+available app icons as they change, including while dragging or reshuffling groups.
+Version 22.51.5 preserves saved split directions and group order while apps
+reopen gradually, preventing a temporarily empty column from collapsing the
+layout into one tabbed group. Session sizing and incremental window restoration
+from 22.51.4 remain supported.
+
+## Issues and contributions
+
+Report bugs and request features in this repository's
+[issue tracker](https://github.com/tiagosantosvdl/forge/issues). Include your
+distribution, GNOME Shell and Forge versions, X11 or Wayland session type,
+relevant extensions, monitor arrangement, workspace and group layout,
+reproduction steps, and relevant Shell logs.
+
+Submit changes through [pull requests](https://github.com/tiagosantosvdl/forge/pulls),
+with a description of the behavior changed and verification performed.
+
+## Credits and licensing
+
+This fork builds on [Forge](https://github.com/forge-ext/forge) by Jose Maranan
+and its contributors and translators, including Benny Powers. Adapted upstream
+fixes retain attribution to their authors in source comments. Build-generated
+contributor information is also available in Forge's About preferences.
+
+The extension is licensed under GPL-3.0-or-later; see [LICENSE](LICENSE).
