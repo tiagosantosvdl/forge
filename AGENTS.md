@@ -45,26 +45,20 @@ automatically. Do not use subagents unless explicitly authorized.
 
 - Repository: https://github.com/tiagosantosvdl/forge; `origin` uses SSH; branch `main`.
 - Extension UUID: `forge@tiagosantosvdl.github.com`.
-- Current source version: **22.51.16**, prepared for release. Installed version
-  remains **22.51.15** with diagnostic logging until the new production package
-  is installed.
-- Release destination: https://github.com/tiagosantosvdl/forge/releases/tag/v22.51.15
-- Release commit: `58ce931`; annotated tag `v22.51.15` was pushed with `main`.
+- Current source and installed version: **22.51.16**. The system installation
+  uses the published production build; temporary geometry diagnostics are removed.
+- Release destination: https://github.com/tiagosantosvdl/forge/releases/tag/v22.51.16
+- Release commit: `e08028b`; annotated tag `v22.51.16` was pushed with `main`.
 - GitHub testing and release workflows both completed successfully.
 - Published ZIP and Debian package checksums passed and their payloads match.
   The published `.deb` was installed successfully; the package query reports
-  22.51.15 and all 71 installed extension files match the published ZIP.
+  22.51.16 and all 71 installed extension files match the published ZIP.
 - System path: `/usr/share/gnome-shell/extensions/forge@tiagosantosvdl.github.com`.
-- Local debug package and ZIP: `dist/debug-22.51.15/`. Built with
-  `make build debug` in an isolated tracked-source copy; packaging tests,
-  checksums and ZIP/DEB payload comparison passed. Installation succeeded and
-  all 71 installed files match the debug ZIP. Installed `production` is false;
-  `logging-enabled` is true and `log-level` is 6 (TRACE), raised from 5 (DEBUG).
-  The user reports logging out/in after the initial debug installation, and that
-  Shell session emits Forge DEBUG/TRACE logs. A subsequent diagnostic debug build
-  is now installed from `dist/debug-geometry-22.51.15/`; all 71 installed files
-  match its ZIP. The subsequent session emits `[geometry-diag]` messages,
-  confirming that its instrumentation is loaded.
+- Installed `production` is true. The live session's `logging-enabled` setting
+  is false, disabled using the running Shell's session bus. A logout/login is
+  required to load 22.51.16; do not assume it has happened.
+- Previous debug artifacts remain under ignored `dist/debug-22.51.15/` and
+  `dist/debug-geometry-22.51.15/`; these are not the installed release.
 - Release assets/checksums are in ignored `dist/`; published assets are cached
   under `dist/published-<version>/`.
 - Passive live monitoring reproduced the VirtualBox guest-resize tiling failure
@@ -241,12 +235,12 @@ The source now restricts the geometry handler's grab path to MOVING or RESIZING
 explicitly. UNKNOWN falls through to ordinary tile restoration whether the
 resizing window or another window is focused. The regression reproducing
 UNKNOWN on another focused window failed before this change and passes after
-it; it also covers UNKNOWN on the emitting window, restored frame dimensions,
+it; it also covers UNKNOWN on the emitting window, requested tile dimensions,
 and no focus changes. A move-grab regression and the existing resize-grab checks
 verify real grabs retain their handling. All eight JavaScript suites pass
 (198 tests); changed files passed Prettier 2.7.1 and whitespace checks. This
-source fix is being released as 22.51.16; the installed diagnostic build
-still contains the original grab check until installation. Live verification of the fix is pending.
+source fix is published and installed as 22.51.16. Live verification of the fix
+is pending a session reload and guest-resize reproduction.
 The origin of lingering UNKNOWN remains unconfirmed, so grab lifecycle code
 has not been changed on that hypothesis.
 
