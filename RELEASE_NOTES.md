@@ -1,21 +1,18 @@
-# Forge 22.51.13
+# Forge 22.51.14
 
-Fixes for abrupt corner masks and faint window-colored tips.
+Fix shortcut registration failures after unlocking the screen.
 
-- Clip continuously across the rounded frame boundary and clear RGB together
-  with alpha in cut-out corners.
-- Preserve native edge coverage without smoothing it twice, including on
-  translucent windows, and adapt smoothing to the physical render scale.
-- Relocate the existing outer shadow profile around the rounded contour.
-  Guard texture sampling so opaque titlebar pixels cannot leak through texture
-  edge clamping. Preserve shadow color and follow actor opacity during fades.
-- Correct premultiplied-alpha blending on the legacy shader path, with a
-  straight-alpha fallback for older Shell APIs.
-- Add eight isolated EGL/GLES rendering checks using the production shader.
+- Reuse the extension-owned shortcut manager for window drag checks. Previously,
+  a drag check could create a second manager, leaving the original shortcuts
+  registered outside the lock/unlock cleanup path.
+- Keep shortcut registration, settings watchers, and cleanup under one manager
+  so unlocking can register shortcuts without duplicate-registration failures.
+- Add regression coverage for dragging, repeated lock/unlock cycles, settings
+  refresh, and cleanup. Genuine shortcut problems still produce notifications.
 
-Validation: eight JavaScript suites and fifteen native/package tests passed,
-including actual shader pixel checks. Shadow relocation approximates custom
-client blur shapes. Local visual feedback confirms improved corner appearance;
-a full GNOME/application compatibility matrix remains unverified.
+Validation: all 194 JavaScript tests passed, including a regression that failed
+before the fix. All fifteen Python tests passed, including native preferences
+and packaging checks. Source passed Prettier 2.7.1 and whitespace checks.
+Live desktop verification remains pending.
 
 Log out and back in after installation to load the updated extension.

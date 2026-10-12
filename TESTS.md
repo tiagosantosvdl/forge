@@ -70,6 +70,7 @@ For shortcut conflict warnings:
 - [ ] Clicking the warning or Open Preferences opens Forge Preferences.
 - [ ] Resolving all conflicts removes the warning; updated conflicts replace the previous warning.
 - [ ] Disabling Forge removes its shortcut warning.
+- [ ] With conflict-free shortcuts, drag a window, then lock/unlock several times; Forge shortcuts keep working without registration-failed warnings.
 
 With Ubuntu Tiling Assistant enabled:
 

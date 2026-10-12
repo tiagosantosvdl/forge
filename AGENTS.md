@@ -26,7 +26,9 @@ The user supplied this instruction:
 > Always discuss the issues only, never makes unless I explicitely require.
 
 Investigate and explain questions/bug reports; implement when explicitly asked
-or told to proceed. Discussion does not authorize deployment or live desktop
+or told to proceed. The user explicitly permits updating this handoff as agent
+memory without asking permission; that does not authorize implementation changes.
+Discussion does not authorize deployment or live desktop
 configuration changes. When release and installation are requested, complete
 them without repeatedly asking permission already granted. OS authentication
 may still be necessary. Preserve unrelated edits. Never log out the user or
@@ -36,16 +38,18 @@ restart their live Shell automatically. This session did not authorize subagents
 
 - Repository: https://github.com/tiagosantosvdl/forge; `origin` uses SSH; branch `main`.
 - Extension UUID: `forge@tiagosantosvdl.github.com`.
-- Current version: **22.51.13**, release tag `v22.51.13`.
-- Release URL: https://github.com/tiagosantosvdl/forge/releases/tag/v22.51.13
-- Version 22.51.13 was checksum-verified and installed locally. All installed
+- Current source and installed version: **22.51.14**, built locally from the
+  working tree. The user has now requested committing, pushing, and a tagged
+  release of 22.51.14. Check Git and GitHub for publication status.
+- Release destination: https://github.com/tiagosantosvdl/forge/releases/tag/v22.51.14
+- The 22.51.13 release and both GitHub workflows were verified successful.
+- Version 22.51.14 was checksum-verified and installed locally. All 71 installed
   extension files match its corresponding ZIP.
 - System path: `/usr/share/gnome-shell/extensions/forge@tiagosantosvdl.github.com`.
-- Local 22.51.13 assets/checksums are in ignored `dist/`; older published assets
+- Local 22.51.14 assets/checksums are in ignored `dist/`; older published assets
   are cached under `dist/published-<version>/`.
-- The user confirmed the corner appearance improved and requested committing,
-  pushing, and tagging 22.51.13. Consult Git and GitHub for the resulting commit
-  and publication status; recheck rather than assuming desktop or remote state.
+- The user confirmed the 22.51.13 corner appearance improved. Desktop reload
+  and live verification of the 22.51.14 shortcut fix remain unconfirmed.
 
 Declared Shell support is 45–51; the inspected local Shell was 50.1. Automated
 checks are not a complete visual compatibility matrix. Installation does not
@@ -132,6 +136,41 @@ repeat. Disable cleans the source and resets the signature so unresolved
 warnings can return after re-enable. Both legacy GNOME 45 and GNOME 46+ APIs
 have regression coverage.
 
+The user reports lengthy "registration failed" warnings after unlocking.
+A read-only check using the installed shortcut comparison modules found no
+conflicts among the 40 Forge shortcut settings and the system/custom shortcuts
+covered by that checker. This does not rule out bindings held by other extensions.
+The GNOME Shell journal confirms repeated "Trying to re-add keybinding" warnings
+for many Forge actions. Forge's own error messages were absent; installed
+`lib/shared/settings.js` sets `production = true`, which disables its logger.
+
+The duplicate-manager lifecycle bug was reproduced in an automated regression
+and fixed in source at the user's request. `extension.js` constructs
+`WindowManager` before assigning `this.keybindings`. Previously, the window
+manager cached an undefined `_kbd`, and its `kbd` getter created a second
+`Keybindings` instance during drag/drop permission checks, replacing
+`ext.keybindings`. The original bindings and settings watchers escaped subsequent
+lock/unlock cleanup. `lib/extension/window.js` now reads `ext.keybindings`
+directly and no longer imports, caches, or creates a shortcut manager.
+`tests/shortcut-conflicts.test.js` exercises the production window-manager getter,
+drag permission check, keybindings, and session-mode callback with mocked Shell
+APIs. It failed before the fix and passes afterward, checking manager identity,
+three lock/unlock cycles, settings refresh, no spurious warnings, and cleanup of
+bindings/watchers/pending work. All eight JavaScript files passed when run
+individually (194 tests); changed JavaScript passed Prettier 2.7.1 and whitespace
+checks. The local `node --test` runner hid child-test output; direct `node` runs
+provided full results. `TESTS.md` records the manual drag/lock/unlock check.
+The user requested a version bump, Debian package, and local installation for
+this fix. Version 22.51.14 was built in an isolated temporary copy of the tracked
+working-tree files, preserving the source checkout from build-generated changes.
+Four packaging tests passed, package checksums verified, and ZIP/DEB extension
+payloads matched. Installation via `pkexec /usr/bin/dpkg -i` succeeded; the package
+query reports 22.51.14 and all 71 installed extension files match its ZIP.
+Live desktop verification remains pending; log out/in is needed to load the fix
+and clear stale in-memory registrations. Do not assume the session has reloaded.
+Lock also resets `_lastProblems`, so unchanged warnings can recur on unlock;
+preserving warning history alone would not resolve duplicate registration.
+
 The user asked whether Forge has a first-run thank-you/welcome notification.
 It does **not**. They did not request implementing one.
 
@@ -155,8 +194,8 @@ inventories as current state.
 
 ## Validation
 
-The last release passed eight Node test files, seven Python tests including
-native GTK/GJS/GSettings checks, formatting, whitespace, package contents, and
+The 22.51.14 release checks passed eight Node test files (194 tests) and fifteen
+Python tests including native GTK/GJS/GSettings checks, formatting, whitespace, package contents, and
 checksums. `TESTS.md` documents manual checks.
 
 ```sh
@@ -257,6 +296,13 @@ and installed successfully. Installed files match the verified package. The user
 was told to log out/in to load it; do not assume the session has reloaded.
 The user subsequently confirmed improved appearance and requested committing,
 pushing, and tagging 22.51.13, including this handoff. No feature work remains
-outstanding. Verify release publication through GitHub when taking over.
+outstanding from that release request. The subsequent unlock shortcut registration
+fix above is implemented, tested, packaged, and installed locally as 22.51.14.
+The user has requested committing, pushing, and tagging this update. Release
+checks passed all 194 JavaScript tests and all fifteen Python tests; the native
+GTK test needed an unsandboxed rerun for its isolated private socket. The prior
+22.51.13 release and its workflows were verified successful through GitHub.
+Live desktop verification after log out/in remains pending. Check Git and GitHub
+for the resulting 22.51.14 commit, tag, workflows, and published assets.
 Full manual visual testing remains a limitation, not authorization to alter the
 user's session.

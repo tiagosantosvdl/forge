@@ -9,6 +9,7 @@ function load(context, file) {
     fs
       .readFileSync(path.join(__dirname, "../lib", file), "utf8")
       .replace(/^import[\s\S]*?;\n/gm, "")
+      .replace(/^export default /gm, "")
       .replace(/^export /gm, ""),
     context
   );
@@ -136,6 +137,8 @@ function runtimeHarness({ modern = true } = {}) {
   const failures = new Set();
   const attempts = [];
   const context = vm.createContext({
+    Extension: class {},
+    Utils: { createEnum: (names) => Object.fromEntries(names.map((name) => [name, name])) },
     GObject: { Object: class {}, registerClass() {} },
     GLib: {
       PRIORITY_DEFAULT_IDLE: 0,
@@ -173,7 +176,7 @@ function runtimeHarness({ modern = true } = {}) {
       Notification,
       ...(modern ? { getSystemSource() {} } : {}),
     },
-    Logger: { debug() {}, error() {} },
+    Logger: { debug() {}, error() {}, info() {} },
     _: (text) => text,
     shortcutRecords() {
       return Array.from(values, ([key, accelerators]) => record("forge", key, accelerators));
@@ -192,7 +195,10 @@ function runtimeHarness({ modern = true } = {}) {
   });
   load(context, "shared/shortcut-conflicts.js");
   load(context, "extension/keybindings.js");
+  load(context, "extension/window.js");
+  load(context, "../extension.js");
   const settings = {
+    get_string: () => "Super",
     connect(_name, callback) {
       changed = callback;
       return 1;
@@ -201,15 +207,28 @@ function runtimeHarness({ modern = true } = {}) {
       changed = null;
     },
   };
+  const windowManager = vm.runInContext("Object.create(WindowManager.prototype)", context);
+  windowManager.getPointer = () => [0, 0, 64];
   const instance = vm.runInContext("Keybindings", context);
-  const bindings = new instance({
+  const extension = {
     kbdSettings: settings,
     settings: {},
-    extWm: {},
+    extWm: windowManager,
     openPreferences: () => preferencesOpened++,
-  });
+    _addIndicator() {},
+    _removeIndicator() {},
+  };
+  windowManager.ext = extension;
+  const bindings = new instance(extension);
+  extension.keybindings = bindings;
+  const sessionChanged = vm.runInContext("ForgeExtension.prototype._onSessionModeChanged", context);
   return {
     bindings,
+    extension,
+    windowManager,
+    session(mode) {
+      sessionChanged.call(extension, { currentMode: mode });
+    },
     values,
     registered,
     notifications,
@@ -236,6 +255,31 @@ function runtimeHarness({ modern = true } = {}) {
     },
   };
 }
+
+test("drag checks reuse the shortcut manager across lock/unlock and extension cleanup", () => {
+  const harness = runtimeHarness();
+  harness.session("user");
+  assert.equal(harness.registered.size, 2);
+  assert.equal(harness.windowManager.allowDragDropTile(), true);
+  assert.equal(harness.extension.keybindings, harness.bindings);
+  for (let cycle = 0; cycle < 3; cycle++) {
+    harness.session("unlock-dialog");
+    assert.equal(harness.registered.size, 0);
+    assert.equal(harness.watching(), false);
+    assert.equal(harness.windowManager.allowDragDropTile(), true);
+    harness.session("user");
+    assert.equal(harness.registered.size, 2);
+    harness.change();
+    harness.flush();
+    assert.equal(harness.windowManager.kbd, harness.bindings);
+    assert.equal(harness.notifications.length, 0);
+  }
+  harness.change();
+  harness.extension.keybindings.disable();
+  assert.equal(harness.registered.size, 0);
+  assert.equal(harness.watching(), false);
+  assert.equal(harness.idles.size, 0);
+});
 
 test("runtime keeps configured conflicts out of registration and reports them once", () => {
   const harness = runtimeHarness();
