@@ -45,7 +45,9 @@ automatically. Do not use subagents unless explicitly authorized.
 
 - Repository: https://github.com/tiagosantosvdl/forge; `origin` uses SSH; branch `main`.
 - Extension UUID: `forge@tiagosantosvdl.github.com`.
-- Current source and installed version: **22.51.15**.
+- Current source version: **22.51.16**, prepared for release. Installed version
+  remains **22.51.15** with diagnostic logging until the new production package
+  is installed.
 - Release destination: https://github.com/tiagosantosvdl/forge/releases/tag/v22.51.15
 - Release commit: `58ce931`; annotated tag `v22.51.15` was pushed with `main`.
 - GitHub testing and release workflows both completed successfully.
@@ -53,10 +55,21 @@ automatically. Do not use subagents unless explicitly authorized.
   The published `.deb` was installed successfully; the package query reports
   22.51.15 and all 71 installed extension files match the published ZIP.
 - System path: `/usr/share/gnome-shell/extensions/forge@tiagosantosvdl.github.com`.
+- Local debug package and ZIP: `dist/debug-22.51.15/`. Built with
+  `make build debug` in an isolated tracked-source copy; packaging tests,
+  checksums and ZIP/DEB payload comparison passed. Installation succeeded and
+  all 71 installed files match the debug ZIP. Installed `production` is false;
+  `logging-enabled` is true and `log-level` is 6 (TRACE), raised from 5 (DEBUG).
+  The user reports logging out/in after the initial debug installation, and that
+  Shell session emits Forge DEBUG/TRACE logs. A subsequent diagnostic debug build
+  is now installed from `dist/debug-geometry-22.51.15/`; all 71 installed files
+  match its ZIP. The subsequent session emits `[geometry-diag]` messages,
+  confirming that its instrumentation is loaded.
 - Release assets/checksums are in ignored `dist/`; published assets are cached
   under `dist/published-<version>/`.
-- Live verification of the VirtualBox rendering/tiling changes remains pending.
-  Log out/in is required to load the update; session reload is unconfirmed.
+- Passive live monitoring reproduced the VirtualBox guest-resize tiling failure
+  with 22.51.15 enabled. See the desktop investigation below. Rendering checks
+  and lock/unlock verification remain pending.
 
 Declared Shell support is 45–51; the inspected local Shell was 50.1. Automated
 checks are not a complete visual compatibility matrix. Installation does not
@@ -148,8 +161,9 @@ A read-only check using the installed shortcut comparison modules found no
 conflicts among the 40 Forge shortcut settings and the system/custom shortcuts
 covered by that checker. This does not rule out bindings held by other extensions.
 The GNOME Shell journal confirms repeated "Trying to re-add keybinding" warnings
-for many Forge actions. Forge's own error messages were absent; installed
-`lib/shared/settings.js` sets `production = true`, which disables its logger.
+for many Forge actions. Forge's own error messages were absent during that
+investigation: the production build disables its logger. The local debug build
+described above allows logging once the session loads it.
 
 The duplicate-manager lifecycle bug was reproduced in an automated regression
 and fixed in source at the user's request. `extension.js` constructs
@@ -183,10 +197,82 @@ It does **not**. They did not request implementing one.
 
 ### Related desktop investigation
 
-VirtualBox has reported broad curved distortion/clipping across the VM window,
-including its host-side status bar, after the corner shader update. Guest-driven
-resizes also reportedly disturb tile placement. Switching focus clears both
-symptoms; the exact live cause remains unconfirmed.
+The user reports that VirtualBox's broad curved distortion/clipping appears
+resolved after restarting the VM. Guest-driven resizes still disturb tile
+placement after logging out/in with the debug build; switching focus restores
+the tile. The tiling failure's exact live cause remains unconfirmed.
+
+The new session emits geometry-triggered tree-render messages, including
+`size-changed`, but those messages do not identify the emitting window or record
+guards that skip rendering. They originate in `Tree.render()`, rather than at
+entry to the geometry callback. Their presence therefore establishes some
+completed scheduling, but does not establish that the failing guest resize
+reached the callback. A subsequent passive capture confirmed the broken state:
+the VM client shrank from 1908x1212 to 1024x810, with matching requested size
+in `WM_NORMAL_HINTS`, no maximized/fullscreen state, and another window active.
+No Forge tree-render messages appeared around that resize. While focus remained
+elsewhere, another snapshot showed 1280x842; activating the VM restored
+1908x1212 alongside a `render tree from focus` message. This confirms that
+the failure persists with active debug logging, but absence of a tree-render
+message does not distinguish a missed callback from a guard skipping rendering.
+Targeted callback/guard diagnostics remain necessary to distinguish those paths.
+
+Temporary `[geometry-diag]` logging in the diagnostic debug installation
+confirmed callback and render-guard behavior. These diagnostics have been removed
+from the 22.51.16 source and release packages at the user's request.
+
+Live diagnostics captured the persistent failure: the VM's `size-changed`
+callback ran with a 1024x847 frame (1024x810 client) and a 1908x1249 target
+(1908x1212 client). Global tiling was enabled, the VM was tracked/tiled and
+not maximized/fullscreen; freeze, drag and layout-transition/restoration guards
+were false, with no pending render or move. The focused other window retained
+`grabMode: "UNKNOWN"`. `updateMetaPositionSize()` treats any truthy grab mode
+as an active grab, then returns for a notification from another window, logging
+`geometry-skipped; other-window-grab`. This establishes the immediate cause of
+this failure: the callback is delivered, but UNKNOWN blocks restoration before
+render scheduling. Why that grab mode remains set is not yet established.
+`Utils.grabMode()` returns UNKNOWN for operations outside its move/resize cases;
+`_grabCleanup()` normally clears the node's grab mode. The proposed fix is to
+recognize actual move/resize grabs explicitly and examine grab ownership/cleanup
+so inactive state cannot suppress unrelated client resizes. Startup and another guest resize
+with no focused grab mode were corrected automatically in the same session.
+
+The source now restricts the geometry handler's grab path to MOVING or RESIZING
+explicitly. UNKNOWN falls through to ordinary tile restoration whether the
+resizing window or another window is focused. The regression reproducing
+UNKNOWN on another focused window failed before this change and passes after
+it; it also covers UNKNOWN on the emitting window, restored frame dimensions,
+and no focus changes. A move-grab regression and the existing resize-grab checks
+verify real grabs retain their handling. All eight JavaScript suites pass
+(198 tests); changed files passed Prettier 2.7.1 and whitespace checks. This
+source fix is being released as 22.51.16; the installed diagnostic build
+still contains the original grab check until installation. Live verification of the fix is pending.
+The origin of lingering UNKNOWN remains unconfirmed, so grab lifecycle code
+has not been changed on that hypothesis.
+
+Passive X11 monitoring of the running VM confirmed a real host-window resize,
+not just a rendering artifact. VirtualBox updated `WM_NORMAL_HINTS` and sent a
+single `ConfigureWindow` request for its guest-sized client area. Both client
+and decoration frame shrank; the client remained at that size for approximately
+16 seconds until a focus change restored its previous tile dimensions. No
+repeated VM resize requests were observed during that interval. Global Forge
+tiling was enabled, the extension API reported 22.51.15 active, installed
+`window.js` matched the repository, and the Shell process started after that
+file's installation timestamp. These observations make stale installed code
+unlikely but do not directly inspect imported module state.
+
+The failure is narrowed to the automatic geometry-restoration path: focus still
+reapplies the existing tile. The exact internal cause is unresolved. Passive X11
+events cannot determine whether the Meta geometry callback is missed or whether
+Forge skips or loses its corrective render. `renderTree()` has freeze, grab,
+layout-transition and pending-idle guards; its focus callback requests a forced
+render and queues an unfreeze. These are investigation targets, not confirmed
+causes. Shell's D-Bus `Eval` returned false and production logging was disabled,
+so neither callback execution nor live guard values were established. Temporary
+observers did not alter extension code, settings, VM resolution, or window
+placement. Existing synthetic resize tests directly invoke the geometry handler
+and replace `renderTree()`, so they do not cover live signal delivery or its
+actual idle scheduling and guards.
 
 The source now calculates frame/buffer geometry on every effect paint alongside
 the current render target, allocation and resource scale. It retains only the
@@ -206,7 +292,8 @@ JavaScript suites pass (196 tests); all fifteen Python tests pass with the
 isolated native GTK socket test rerun outside the sandbox. `TESTS.md` includes
 the pending VirtualBox manual checks. Synthetic tests do not exercise live
 compositor texture reuse or VirtualBox. These changes are packaged, published and
-installed as 22.51.15; their live desktop behavior remains unverified.
+installed as 22.51.15; live monitoring shows the guest-resize tiling symptom
+persists. The rendering behavior remains unverified.
 
 Okular is a Flatpak. Its Qt decoration plugin controls titlebar glyphs; normal
 icon overrides did not change them. The user confirmed this launch gives the
@@ -226,7 +313,7 @@ inventories as current state.
 
 ## Validation
 
-The 22.51.15 source checks passed eight Node test files (196 tests) and fifteen
+The 22.51.16 source checks passed eight Node test files (198 tests) and fifteen
 Python tests including native GTK/GJS/GSettings checks, formatting, whitespace, package contents, and
 checksums. `TESTS.md` documents manual checks.
 

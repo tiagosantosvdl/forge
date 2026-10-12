@@ -1,19 +1,18 @@
-# Forge 22.51.15
+# Forge 22.51.16
 
-Address stale corner geometry and focus-dependent tile restoration during client resizes.
+Restore tiled windows after client-initiated resizes when another focused window
+retains an unknown grab mode. This fixes the captured VirtualBox guest-resize
+failure that previously required switching focus to restore the tile.
 
-- Calculate corner geometry from the current window frame, buffer, actor allocation,
-  and render target on every paint instead of caching an intermediate resize state.
-- Invalidate cached effect output when the corner configuration is updated.
-- Handle geometry notifications using the window that resized, including when
-  another window is maximized or untracked, or focus is absent. Preserve active
-  grabs and fullscreen/maximized window geometry.
-- Add regression coverage for resize and scale changes without manager updates,
-  tile restoration without focus changes, and grab/fullscreen handling.
+- Recognize only move and resize grab modes in the geometry handler.
+- Preserve actual move/resize grabs and fullscreen/maximized window geometry.
+- Add regressions for unknown grab modes on the focused or resizing window,
+  tile restoration without focus changes, and real move-grab handling.
+- Ship a production build without temporary resize diagnostic logging.
 
-Validation: all 196 JavaScript tests and fifteen Python tests passed. The two
-new resize-handler regressions fail against the previous source. Source passed
-Prettier 2.7.1 and whitespace checks. Live VirtualBox verification remains pending;
-these changes address suspected causes of the reported rendering and tiling issues.
+Validation: all 198 JavaScript tests and fifteen Python tests passed, including
+the isolated native GTK test rerun outside the sandbox. Source formatting and
+package checks passed. The UNKNOWN regression fails against the previous handler.
+Live verification of this fix remains pending.
 
 Log out and back in after installation to load the updated extension.

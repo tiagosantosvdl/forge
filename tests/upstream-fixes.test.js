@@ -69,6 +69,58 @@ test("client geometry notifications preserve grabs and fullscreen/maximized wind
   assert.equal(renders, 0);
 });
 
+test("unknown grab modes do not suppress client tile restoration", () => {
+  for (const focusedWindow of ["other", "guest"]) {
+    const h = harness();
+    const monitor = h.monitor();
+    const guest = h.window("VirtualBox");
+    const other = h.window("other");
+    monitor.appendChild(guest.node);
+    monitor.appendChild(other.node);
+    const focused = focusedWindow === "guest" ? guest : other;
+    focused.node.grabMode = vm.runInContext("GRAB_TYPES.UNKNOWN", h.context);
+    h.focus(focused.meta);
+    guest.node.renderRect = { x: 500, y: 0, width: 500, height: 500 };
+    Object.assign(guest.rect, { x: 500, y: 0, width: 300, height: 200 });
+    const reasons = [];
+    h.wm.renderTree = (reason) => {
+      reasons.push(reason);
+      h.tree.apply(h.tree);
+    };
+    h.wm._handleMoving = h.wm._handleResizing = () => assert.fail("not a move/resize grab");
+    h.wm.updateMetaPositionSize(guest.meta, "size-changed");
+    assert.deepEqual(reasons, ["size-changed"], focusedWindow);
+    assert.ok(
+      guest.calls.some(
+        (call) => Array.isArray(call) && JSON.stringify(call) === '["resize",true,500,0,500,500]'
+      ),
+      focusedWindow
+    );
+    assert.equal(guest.calls.includes("focus"), false);
+  }
+});
+
+test("real move grabs still suppress unrelated client geometry notifications", () => {
+  const h = harness();
+  const monitor = h.monitor();
+  const guest = h.window("VirtualBox");
+  const other = h.window("other");
+  monitor.appendChild(guest.node);
+  monitor.appendChild(other.node);
+  h.focus(other.meta);
+  other.node.grabMode = vm.runInContext("GRAB_TYPES.MOVING", h.context);
+  h.wm.renderTree = () => assert.fail("must preserve the move grab");
+  let moves = 0;
+  h.wm._handleMoving = (node) => {
+    assert.equal(node, other.node);
+    moves++;
+  };
+  h.wm.updateMetaPositionSize(guest.meta, "size-changed");
+  assert.equal(moves, 0);
+  h.wm.updateMetaPositionSize(other.meta, "position-changed");
+  assert.equal(moves, 1);
+});
+
 // Actual extension classes, with desktop timing, files and actors controlled by each test.
 // FORGE_SOURCE_ROOT allows the same regressions to be run against the pre-fix snapshot.
 function harness() {

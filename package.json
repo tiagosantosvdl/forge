@@ -1,6 +1,6 @@
 {
   "name": "forge",
-  "version": "22.51.15",
+  "version": "22.51.16",
   "description": "Forge - Tiling Extension for GNOME",
   "main": "extension.js",
   "scripts": {
