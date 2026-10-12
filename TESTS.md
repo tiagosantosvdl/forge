@@ -39,6 +39,9 @@ When changing Appearance > Border radius:
 - [ ] Radius 8 with focus widths 1, 2, and 3 has no gap between the focus stroke and GTK window corners; split hints share the outer edge.
 - [ ] Changing the radius or border width updates the focused outline immediately.
 - [ ] Clipping remains aligned on windows with client-side shadows and during overview animations.
+- [ ] Firefox and Edge web apps at 100% scale have no faint window-colored tips or abrupt shadow cutoffs at the frame boundary.
+- [ ] Native rounded edges are not smoothed twice; translucent windows retain their opacity.
+- [ ] Shadows follow all four rounded corners; windows without shadow buffers do not acquire colored corner pixels.
 - [ ] Fullscreen and maximized windows have square corners, including after changing the radius.
 - [ ] Leaving fullscreen or unmaximizing restores the selected radius.
 - [ ] Radius 0 disables clipping; resetting restores radius 14.

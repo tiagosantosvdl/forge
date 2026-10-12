@@ -22,6 +22,10 @@ GNOME Shell validation of the latest upstream fixes is still pending. Repository
 changes take effect in an installed extension only after rebuilding, installing,
 and reloading it.
 
+Version 22.51.13 improves continuous corner clipping, native edge smoothing,
+shadow alignment, and alpha blending. Cut-out tips no longer retain window
+color, and existing native rounded edges are not smoothed twice.
+
 Version 22.51.12 hides focus borders when global tiling is disabled. Shortcut
 conflict warnings remain in the notification list and open Forge Preferences when
 clicked, and disappear when conflicts are resolved.
@@ -80,6 +84,12 @@ decorations. Qt Quick applications also use clipping.
 Disabling Forge removes its clipping effects and theme overrides, preserving
 user configuration edits made while it was enabled. Clipping cannot restore
 pixels already removed by an application's own rounded corners.
+
+The mask uses a continuous rounded edge, preserves existing edge coverage rather
+than smoothing native corners twice, and adapts smoothing to the render scale.
+It samples the existing shadow outside the frame and moves that profile around
+the rounded contour. This preserves shadow color without retaining titlebar
+pixels in the cut-out tips; arbitrary client shadow shapes may differ slightly.
 
 ## Remembered layouts
 
@@ -168,7 +178,7 @@ Download the ZIP or Debian package from
 Install the ZIP for your user:
 
 ```bash
-gnome-extensions install --force forge@tiagosantosvdl.github.com-22.51.12.zip
+gnome-extensions install --force forge@tiagosantosvdl.github.com-22.51.13.zip
 ```
 
 Log out and back in, then enable Forge in Extension Manager or with
@@ -179,7 +189,7 @@ these GitHub releases.
 On Debian or Ubuntu with GNOME Shell 45–51, install the system-wide package:
 
 ```bash
-sudo apt install ./gnome-shell-extension-forge-tiagosantosvdl_22.51.12_all.deb
+sudo apt install ./gnome-shell-extension-forge-tiagosantosvdl_22.51.13_all.deb
 ```
 
 Log out and back in, then enable Forge. A user-local installation with this
@@ -221,7 +231,7 @@ gnome-extensions prefs forge@tiagosantosvdl.github.com
 
 The release workflow runs checks, builds both packages, and attaches them plus
 `SHA256SUMS` to a GitHub Release when a `vMAJOR.MINOR.PATCH` tag is pushed.
-The tag must match `package.json`. Prerelease tags such as `v22.51.12-rc.1` are
+The tag must match `package.json`. Prerelease tags such as `v22.51.13-rc.1` are
 also supported and produce GitHub prereleases.
 
 For each release, update the version in `package.json`, both root version fields
@@ -229,8 +239,8 @@ in `package-lock.json`, and `version-name` in `metadata.json` (use a space in
 place of the prerelease hyphen for GNOME). Commit the changes, then tag and push:
 
 ```bash
-git tag -a v22.51.12 -m "Forge 22.51.12"
-git push origin main v22.51.12
+git tag -a v22.51.13 -m "Forge 22.51.13"
+git push origin main v22.51.13
 ```
 
 Publishing a release manually also builds and attaches the packages. Running
@@ -242,8 +252,8 @@ Python 3 and `dpkg-deb` (from `dpkg`). Outputs are under `dist/`:
 
 Release filenames follow the same convention across these extensions: `<uuid>-<version>.zip`, `gnome-shell-extension-<name>-tiagosantosvdl_<debian-version>_all.deb`, and `SHA256SUMS`. Debian prerelease versions use `~rc.1` where ZIP versions use `-rc.1`.
 
-- `forge@tiagosantosvdl.github.com-22.51.12.zip` for per-user installation
-- `gnome-shell-extension-forge-tiagosantosvdl_22.51.12_all.deb` for system-wide installation
+- `forge@tiagosantosvdl.github.com-22.51.13.zip` for per-user installation
+- `gnome-shell-extension-forge-tiagosantosvdl_22.51.13_all.deb` for system-wide installation
 - `SHA256SUMS` for verification with `cd dist && sha256sum -c SHA256SUMS`
 
 The Debian package is architecture-independent and requires a supported GNOME

@@ -14,6 +14,7 @@ function load(context, file, exports) {
 
 function helpers() {
   const context = vm.createContext({});
+  load(context, "shared/window-corner-shader.js", "CORNER_DECLARATIONS, CORNER_FRAGMENT");
   load(
     context,
     "shared/window-corners.js",
@@ -158,6 +159,10 @@ test("both shader APIs refresh uniforms from the current render target on every 
       }),
     };
     class Effect {
+      add_glsl_snippet(_hook, declarations, code) {
+        assert.equal(declarations, context.CORNER_DECLARATIONS);
+        assert.equal(code, context.CORNER_FRAGMENT);
+      }
       get_actor() {
         return actor;
       }
@@ -178,21 +183,38 @@ test("both shader APIs refresh uniforms from the current render target on every 
     Object.assign(context, {
       Clutter: { ShaderEffect: Effect },
       Shell: { GLSLEffect: legacy ? Effect : null, SnippetHook: { FRAGMENT: 0 } },
-      Cogl: { SnippetHook: { FRAGMENT: 0 } },
+      Cogl: {
+        SnippetHook: { FRAGMENT: 0 },
+        Snippet: {
+          new(_hook, declarations, code) {
+            assert.equal(declarations, context.CORNER_DECLARATIONS);
+            assert.equal(code, context.CORNER_FRAGMENT);
+            return {};
+          },
+        },
+      },
       GObject: { registerClass: (klass) => klass },
     });
     load(context, "extension/window-corner-effect.js", "WindowCornerEffect");
     const effect = new context.WindowCornerEffect();
+    if (legacy) effect.vfunc_build_pipeline();
+    else effect.vfunc_get_static_snippet();
     effect.update({ size: [200, 120], bounds: [0, 0, 200, 120], radius: 8 });
     effect.vfunc_paint_target({}, {});
     assert.deepEqual(uniforms.get("forge_size"), [203, 123]);
     assert.deepEqual(uniforms.get("forge_origin"), [-2, -2]);
     assert.deepEqual(uniforms.get("forge_bounds"), [0, 0, 200, 120]);
+    assert.deepEqual(uniforms.get("forge_pixel_step"), [0.5]);
+    assert.deepEqual(uniforms.get("forge_straight_alpha"), [legacy ? 1 : 0]);
+    let blend;
+    if (legacy) effect.get_pipeline = () => ({ set_blend: (value) => (blend = value) });
     target = [true, 806, 486];
     effect.update({ bounds: [0, 0, 400, 240], radius: 12 });
     effect.vfunc_paint_target({}, {});
     assert.deepEqual(uniforms.get("forge_size"), [403, 243]);
     assert.deepEqual(uniforms.get("forge_radius"), [12]);
+    assert.deepEqual(uniforms.get("forge_straight_alpha"), [0]);
+    if (legacy) assert.equal(blend, "RGBA = ADD (SRC_COLOR, DST_COLOR * (1-SRC_COLOR[A]))");
     assert.equal(paints, 2);
   }
 });

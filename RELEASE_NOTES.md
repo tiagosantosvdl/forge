@@ -1,18 +1,21 @@
-# Forge 22.51.12
+# Forge 22.51.13
 
-Focus borders now follow Forge's global tiling toggle, and shortcut warnings
-remain accessible after their banners close.
+Fixes for abrupt corner masks and faint window-colored tips.
 
-- Show focus and split borders only while global tiling is enabled. Turning
-  tiling off hides both; turning it back on restores enabled borders.
-- Keep shortcut conflict and registration warnings in the notification list
-  under Forge. Clicking the warning or **Open Preferences** opens Forge
-  Preferences, where the Keyboard page shows the affected shortcuts.
-- Replace outdated warnings when conflicts change, remove them when all
-  conflicts are resolved, and clean them up when Forge is disabled.
-- Support both GNOME 45 and the newer notification API, with regression coverage
-  for notification persistence, activation, replacement, and cleanup.
+- Clip continuously across the rounded frame boundary and clear RGB together
+  with alpha in cut-out corners.
+- Preserve native edge coverage without smoothing it twice, including on
+  translucent windows, and adapt smoothing to the physical render scale.
+- Relocate the existing outer shadow profile around the rounded contour.
+  Guard texture sampling so opaque titlebar pixels cannot leak through texture
+  edge clamping. Preserve shadow color and follow actor opacity during fades.
+- Correct premultiplied-alpha blending on the legacy shader path, with a
+  straight-alpha fallback for older Shell APIs.
+- Add eight isolated EGL/GLES rendering checks using the production shader.
 
-Validation: all JavaScript regression suites, native GJS/GTK and GSettings tests,
-formatting checks, and Debian/ZIP packaging checks pass. Log out and back in after
-installation to load the updated extension.
+Validation: eight JavaScript suites and fifteen native/package tests passed,
+including actual shader pixel checks. Shadow relocation approximates custom
+client blur shapes. Local visual feedback confirms improved corner appearance;
+a full GNOME/application compatibility matrix remains unverified.
+
+Log out and back in after installation to load the updated extension.
