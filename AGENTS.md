@@ -1,6 +1,6 @@
 # Forge agent handoff
 
-Updated 2026-10-12. This file provides repository instructions and a handoff
+Updated 2026-10-14. This file provides repository instructions and a handoff
 for future coding agents. Read any additional applicable `AGENTS.md` files.
 
 ## Maintaining this file
@@ -45,18 +45,21 @@ automatically. Do not use subagents unless explicitly authorized.
 
 - Repository: https://github.com/tiagosantosvdl/forge; `origin` uses SSH; branch `main`.
 - Extension UUID: `forge@tiagosantosvdl.github.com`.
-- Current source and installed version: **22.51.16**. The system installation
-  uses the published production build; temporary geometry diagnostics are removed.
-- Release destination: https://github.com/tiagosantosvdl/forge/releases/tag/v22.51.16
-- Release commit: `e08028b`; annotated tag `v22.51.16` was pushed with `main`.
-- GitHub testing and release workflows both completed successfully.
-- Published ZIP and Debian package checksums passed and their payloads match.
-  The published `.deb` was installed successfully; the package query reports
-  22.51.16 and all 71 installed extension files match the published ZIP.
+- Current source and installed version: **22.51.17**. This is a local production
+  build with the GTK 3 content-corner fix.
+- Latest published release remains **22.51.16**:
+  https://github.com/tiagosantosvdl/forge/releases/tag/v22.51.16.
+  Release commit `e08028b` and annotated tag `v22.51.16` were pushed with `main`;
+  GitHub testing and release workflows completed successfully.
+- The local 22.51.17 ZIP and Debian package checksums passed and their 71-file
+  extension payloads match. The `.deb` was installed successfully and all 71
+  installed extension files match the local ZIP; the package query reports
+  22.51.17.
 - System path: `/usr/share/gnome-shell/extensions/forge@tiagosantosvdl.github.com`.
-- Installed `production` is true. The live session's `logging-enabled` setting
-  is false, disabled using the running Shell's session bus. A logout/login is
-  required to load 22.51.16; do not assume it has happened.
+- Installed `production` is true. Logging was previously disabled on the live
+  Shell session bus; its current setting has not been rechecked. Log out/in to
+  load 22.51.17, then restart applications if they retain old GTK styling.
+  Do not assume the session has reloaded.
 - Previous debug artifacts remain under ignored `dist/debug-22.51.15/` and
   `dist/debug-geometry-22.51.15/`; these are not the installed release.
 - Release assets/checksums are in ignored `dist/`; published assets are cached
@@ -110,6 +113,18 @@ configuration; `window-corner-effect.js` implements clipping;
   `tiling-mode-enabled` is true. The user initially requested the opposite and
   immediately corrected it. Preserve the focus-border preference. Window
   clipping remains independent of highlight visibility.
+
+**22.51.17:** GTK 3 window backgrounds keep square top corners while decoration
+and headerbar corners retain the configured radius. GTK 3 paints the main window
+background below its titlebar, so rounding both `window.csd` and `decoration`
+created another pair of corners at Inkscape's menu/content seam. An isolated GTK 3
+Broadway render reproduced the cut-outs with the previous CSS; production CSS
+from the corrected helper passed pixel checks at both menu corners with focused
+and inactive styling. Inactive colors can conceal the cut-outs. The compositor
+shader and focus-border geometry were not changed. The user reports that the
+Inkscape issue has not recurred after installation. This is positive live
+feedback, rather than a full visual compatibility matrix. `TESTS.md` includes
+the manual check.
 
 Edge/Edge web apps cache theme radius. The user confirmed reopening Edge and
 Teams fixes their corners and explicitly accepted that behavior. Do not add
@@ -307,7 +322,7 @@ inventories as current state.
 
 ## Validation
 
-The 22.51.16 source checks passed eight Node test files (198 tests) and fifteen
+The 22.51.17 source checks passed eight Node test files (198 tests) and fifteen
 Python tests including native GTK/GJS/GSettings checks, formatting, whitespace, package contents, and
 checksums. `TESTS.md` documents manual checks.
 

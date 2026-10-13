@@ -42,6 +42,7 @@ When changing Appearance > Border radius:
 - [ ] Changing the radius or border width updates the focused outline immediately.
 - [ ] Clipping remains aligned on windows with client-side shadows and during overview animations.
 - [ ] Firefox and Edge web apps at 100% scale have no faint window-colored tips or abrupt shadow cutoffs at the frame boundary.
+- [ ] Inkscape has no extra rounded cut-outs at the menu bar below its titlebar, both focused and unfocused; outer window corners remain rounded.
 - [ ] Native rounded edges are not smoothed twice; translucent windows retain their opacity.
 - [ ] Shadows follow all four rounded corners; windows without shadow buffers do not acquire colored corner pixels.
 - [ ] Fullscreen and maximized windows have square corners, including after changing the radius.

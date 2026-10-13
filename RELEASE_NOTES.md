@@ -1,18 +1,18 @@
-# Forge 22.51.16
+# Forge 22.51.17
 
-Restore tiled windows after client-initiated resizes when another focused window
-retains an unknown grab mode. This fixes the captured VirtualBox guest-resize
-failure that previously required switching focus to restore the tile.
+Remove extra rounded corners below the titlebar in GTK 3 applications such as
+Inkscape. Keep the window background's top corners square while preserving
+rounded decorations, headerbars, and outer compositor clipping.
 
-- Recognize only move and resize grab modes in the geometry handler.
-- Preserve actual move/resize grabs and fullscreen/maximized window geometry.
-- Add regressions for unknown grab modes on the focused or resizing window,
-  tile restoration without focus changes, and real move-grab handling.
-- Ship a production build without temporary resize diagnostic logging.
+The issue was reproduced with Forge's GTK CSS on a private GTK 3 display,
+including the stronger visual contrast when the window is focused. The corrected
+CSS removes the menu-area cut-outs in that isolated reproduction.
 
-Validation: all 198 JavaScript tests and fifteen Python tests passed, including
-the isolated native GTK test rerun outside the sandbox. Source formatting and
-package checks passed. The UNKNOWN regression fails against the previous handler.
-Live verification of this fix remains pending.
+Validation: all 198 JavaScript tests and fifteen Python tests passed, with the
+native GTK preferences test rerun outside the sandbox. Focused and unfocused
+GTK 3 pixel checks passed using the corrected production CSS. Formatting,
+checksums, and ZIP/Debian payload comparisons passed. The user reports that the
+Inkscape issue has not recurred after installation.
 
-Log out and back in after installation to load the updated extension.
+Log out and back in after installation to load the updated extension. Restart
+Inkscape afterward if it retains the old GTK styling.
