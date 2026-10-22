@@ -52,10 +52,14 @@ automatically. Do not use subagents unless explicitly authorized.
   ZIP and Debian checksums passed; their 72-file extension payloads match, and
   all 72 installed files match the verified debug ZIP.
   Artifacts and build log are under ignored `dist/debug-22.51.19/`.
-- Latest published release remains **22.51.16**:
-  https://github.com/tiagosantosvdl/forge/releases/tag/v22.51.16.
-  Release commit `e08028b` and annotated tag `v22.51.16` were pushed with `main`;
-  GitHub testing and release workflows completed successfully.
+- Latest published release: **22.51.19**:
+  https://github.com/tiagosantosvdl/forge/releases/tag/v22.51.19.
+  Release commit `7c93be1` and annotated tag `v22.51.19` were pushed atomically
+  with `main`. Both testing matrix jobs and the release build/publish workflow
+  completed successfully. Published production
+  ZIP/DEB assets and checksums were downloaded under `dist/published-22.51.19/`;
+  their 72-file extension payloads match and their JavaScript matches the source.
+  The local debug installation was preserved rather than replaced by production.
 - System path: `/usr/share/gnome-shell/extensions/forge@tiagosantosvdl.github.com`.
 - Installed `production` is false. Logging is enabled on the existing desktop
   session bus; level 6 (TRACE) was preserved. The user reports all installed
@@ -446,9 +450,13 @@ inventories as current state.
 
 ## Validation
 
-The 22.51.17 source checks passed eight Node test files (198 tests) and fifteen
-Python tests including native GTK/GJS/GSettings checks, formatting, whitespace, package contents, and
-checksums. `TESTS.md` documents manual checks.
+The 22.51.19 release checks passed nine Node test files (273 tests) and fifteen
+Python tests, including native GTK/GJS/GSettings and packaging checks. Native
+checks used isolated displays and memory settings. Whole-tree JavaScript/JSON
+formatting passed Prettier 2.7.1, excluding ignored build output. Production
+packages built from the release commit passed ZIP/DEB payload comparisons and
+checksums; downloaded published assets passed the same checks. `TESTS.md`
+documents manual checks.
 
 ```sh
 node --test tests/*.test.js
