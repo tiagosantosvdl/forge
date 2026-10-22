@@ -45,21 +45,22 @@ automatically. Do not use subagents unless explicitly authorized.
 
 - Repository: https://github.com/tiagosantosvdl/forge; `origin` uses SSH; branch `main`.
 - Extension UUID: `forge@tiagosantosvdl.github.com`.
-- Current source and installed version: **22.51.17**. This is a local production
-  build with the GTK 3 content-corner fix.
+- Current source and installed metadata version: **22.51.19**. The local
+  installed package includes the group-restoration partition fix, cross-monitor
+  preview refresh and whole-group edge drops described below. It was built with
+  `production = false`; the source default remains true.
+  ZIP and Debian checksums passed; their 72-file extension payloads match, and
+  all 72 installed files match the verified debug ZIP.
+  Artifacts and build log are under ignored `dist/debug-22.51.19/`.
 - Latest published release remains **22.51.16**:
   https://github.com/tiagosantosvdl/forge/releases/tag/v22.51.16.
   Release commit `e08028b` and annotated tag `v22.51.16` were pushed with `main`;
   GitHub testing and release workflows completed successfully.
-- The local 22.51.17 ZIP and Debian package checksums passed and their 71-file
-  extension payloads match. The `.deb` was installed successfully and all 71
-  installed extension files match the local ZIP; the package query reports
-  22.51.17.
 - System path: `/usr/share/gnome-shell/extensions/forge@tiagosantosvdl.github.com`.
-- Installed `production` is true. Logging was previously disabled on the live
-  Shell session bus; its current setting has not been rechecked. Log out/in to
-  load 22.51.17, then restart applications if they retain old GTK styling.
-  Do not assume the session has reloaded.
+- Installed `production` is false. Logging is enabled on the existing desktop
+  session bus; level 6 (TRACE) was preserved. The user reports all installed
+  changes pass testing. This does not establish a complete visual compatibility
+  matrix. Previous packages remain in ignored `dist/`.
 - Previous debug artifacts remain under ignored `dist/debug-22.51.15/` and
   `dist/debug-geometry-22.51.15/`; these are not the installed release.
 - Release assets/checksums are in ignored `dist/`; published assets are cached
@@ -150,6 +151,129 @@ restore original defaults with `reset`, not explicit default values. Forge's
 settings change, surviving Shell restarts. Never modify UTA's own
 `overridden-settings` journal. Integration tracks extension/handler recreation
 and waits for an active window grab to finish before switching ownership.
+
+### Per-monitor history and launch placement
+
+Per-monitor histories and launch-monitor placement were introduced in 22.51.18
+and are included in the installed local 22.51.19 debug package. The latest fixes
+below passed 273 JavaScript tests, formatting, checksums and ZIP/Debian/installed
+payload checks. The build used an isolated copy of tracked and non-ignored
+working-tree files. The user reports all installed changes pass testing;
+independent validation across the full supported Shell range remains incomplete.
+
+- `lib/shared/layout-state.js` adds `readMonitorState()`. State version 2 stores
+  histories under `monitors`, keyed by physical display identity. Legacy version
+  1 snapshots are read without mutation; the last active configuration wins for
+  monitors it contains, while other monitor histories remain available. Without
+  timestamps for inactive snapshots, later entries win among those snapshots.
+  Migration does not reconstruct groups already absent from the selected history.
+- `lib/extension/layouts.js` retains live monitor/group nodes and resize shares
+  on surviving displays, remapping numerical indices by identity. Returning
+  displays restore their own histories. Displaced windows use saved slots,
+  preferring a returning original monitor, then matching group members, then
+  tiled-window count and display area. Unmatched windows use the least busy
+  display. Session fallback origins allow returning windows to go home;
+  unmatched temporary slots are excluded from host history. Deliberate moves
+  release fallback ownership, including moves applied to the tree before Meta's
+  monitor signal. Workspace removal updates active and disconnected histories.
+- `lib/extension/launch-placement.js` uses `InjectionManager` to observe Shell.App
+  activation/new-window/launch/action methods and Shell-created launch contexts.
+  Requests match desktop application IDs through Shell.WindowTracker, expire
+  after 15 seconds, and resolve monitors by identity. Only newly created normal,
+  non-transient windows can claim them. Delayed identity receives retries from
+  layout restoration. Claimed launch targets survive initial application geometry
+  until the final group-restoration pass. Disabling restores hooks and disconnects
+  launch-context signals. Launches outside these observed Shell paths retain
+  GNOME/application placement. Captured requests do not infer monitor intent from
+  later focus changes. Arbitrary third-party launchers need live verification.
+- Installed Shell typelibs verified the App methods can be overridden and that
+  Gio.AppLaunchContext exposes `launch-started`; this is not live UI validation.
+  Nine JavaScript suites pass (223 tests). All fifteen Python tests passed, with
+  the private Broadway GTK socket test rerun outside the sandbox. Changed JS
+  passes pinned Prettier 2.7.1; `TESTS.md` includes pending live docking/menu checks.
+
+Read-only debug investigation confirmed the reported browser windows restored
+into splits and the affected web app was already on the other monitor before
+its delayed group-restoration pass. It did not establish who selected the initial
+monitor. The active two-monitor history had no tabbed/stacked groups; a saved
+three-monitor history retained groups and used the same identities for its two
+surviving displays. This establishes distinct configuration histories, rather
+than an identity mismatch for those displays, but not why the active history
+lost its groups. Do not copy private layout contents or window titles here.
+
+#### Group-restoration partition fix (22.51.19)
+
+An isolated reproduction using production `Layouts.restoreWindows()`,
+`placeWindow()`, `Tree.split()` and persistence helpers confirms that pending
+windows in mixed auto-split branches can merge distinct saved groups. Starting
+with a correct split containing two separate tabbed groups, restoring five apps
+in a batch merges them into one group; restoring the same apps one at a time
+preserves both groups. No app identity collision is required.
+
+In `placeWindow()`, `branchFor()` accepts any subtree containing at least one
+saved app key. It does not check whether that subtree also contains apps assigned
+to another saved group. The wrapper/reuse path consequently adopts the whole
+mixed branch. Later app placement reuses that contaminated group. Split branches
+not processed in the same pending batch can remain as group members, producing
+split-screen members alongside full-area window members. `rendered()` captures
+and persists the incorrect result. Existing partial-reopen tests insert windows
+directly under monitor nodes and restore them one at a time; they miss pending
+batches attached to nested auto-split branches. This defect is present in the
+22.51.18 code; its exact initiating live event sequence was not logged.
+
+The source now partitions incompatible branches using a projection of the saved
+subtree. Only matching non-floating windows are detached and reconstructed;
+foreign windows remain in their existing subtree. A live container is reused only
+when its layout matches and all its members belong to the requested saved branch.
+New projected groups use saved sibling order, including when a communications
+app opens before either browser. Unrelated groups, actors, tabs and resize shares
+are preserved. Empty source containers are cleaned after detaching their tabs.
+
+Twenty-six new regressions cover horizontal/vertical splits, tabbed/stacked
+groups, three opening orders, full/partial pending batches, persistence reloads,
+foreign windows, floating windows, and unrelated groups/shares. The first eight
+regressions failed before the source fix. All nine JavaScript suites pass
+(249 tests); changed JS passed Prettier 2.7.1 and whitespace checks. The earlier
+isolated reproductions now preserve both groups and keep unmatched splits out
+of them. The fix is included in the installed local 22.51.19 debug package.
+Existing merged live/saved arrangements were not modified, and cannot be
+reconstructed from lost group boundaries by this fix alone. The user reports
+that the installed changes pass testing; the full compatibility matrix is pending.
+
+#### Cross-monitor previews and group edge drops (22.51.19)
+
+An isolated reproduction confirmed target-cache loss when the pointer and dragged
+window report different monitors during a refresh. The installed 22.51.18 code
+filters all targets by pointer/window monitor equality and does not refresh on
+ordinary movement, so an empty cache can suppress previews after crossing. This
+is a reproduced failure path, rather than a logged live event sequence.
+
+The source now refreshes targets during `_handleMoving()` without requiring
+monitor equality. `trackCurrentMonWs()` uses the grabbed window, active-workspace
+monitor nodes and `Tree.shownWindows()` to select currently visible tiled members,
+checks native workspace visibility and actor validity, and retains native stacking
+order. Minimized, floating and hidden tab members do not mask valid targets;
+stacks without title lists retain their visible cascade. Empty destinations hide
+previews. Pointer lookup includes the group rectangle and title bar.
+
+`moveWindowToPointer()` treats a tabbed/stacked group, including its split members,
+as one drop target. Left/right and top/bottom show the matching half of the whole
+group, then `_dropBesideGroup()` wraps the intact group with a horizontal or
+vertical split and inserts the dragged window outside it. The wrapper retains the
+group's outer share; its internal layout, member tabs and internal shares remain
+unchanged, as do unrelated siblings. Legacy monitor-level groups are moved into
+a group container while retaining the monitor node. Center drops join the existing
+group, including when the ungrouped center action is swap. The keyboard Split
+command's existing guard for directly grouped windows has not been changed.
+
+Twenty-four regressions cover all four edges, tabbed/stacked groups, nested split
+members, preview/drop agreement, member and unrelated shares, legacy monitor
+groups, center joins, cross-monitor target refresh, minimized/hidden members,
+group title bars, and empty destinations. Eighteen initial regressions failed
+before these changes. Nine JavaScript suites now pass (273 tests); changed JS
+passes pinned Prettier 2.7.1 and whitespace checks. These fixes are included in
+the installed local 22.51.19 debug package. The user reports the changes pass
+testing; no complete live compatibility matrix has been established.
 
 ### Shortcut notifications
 

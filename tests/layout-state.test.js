@@ -361,3 +361,39 @@ test("fitting a same-app tab with two windows reserves its tab bar", () => {
   assert.equal(fitted.layout, "TABBED");
   assert.equal(fitted.collapsedSplit, true);
 });
+
+test("per-monitor migration prefers last active history and retains disconnected display history", () => {
+  const old = {
+    version: 1,
+    lastConfiguration: '["A","B"]',
+    configurations: {
+      '["A","B"]': {
+        monitors: [monitor("A", group(leaf("current"))), monitor("B", group(leaf("mail")))],
+      },
+      '["A","C"]': {
+        monitors: [monitor("A", group(leaf("stale"))), monitor("C", group(leaf("editor")))],
+      },
+    },
+  };
+  const before = JSON.stringify(old);
+  const state = context.readMonitorState(old);
+  assert.equal(state.version, 2);
+  assert.deepEqual(Array.from(context.layoutKeys(state.monitors.A.workspaces[0].tree)), [
+    "current",
+  ]);
+  assert.deepEqual(Array.from(context.layoutKeys(state.monitors.C.workspaces[0].tree)), ["editor"]);
+  assert.equal(JSON.stringify(old), before);
+  assert.deepEqual(plain(context.readMonitorState(state)), plain(state));
+});
+
+test("per-monitor state rejects invalid histories independently", () => {
+  const state = context.readMonitorState({
+    version: 2,
+    monitors: {
+      A: monitor("A", group(leaf("browser"))),
+      B: monitor("B", { layout: "invalid", children: [] }),
+    },
+  });
+  assert.deepEqual(Object.keys(state.monitors), ["A"]);
+  assert.deepEqual(plain(context.readMonitorState({ version: 99 })), { version: 2, monitors: {} });
+});

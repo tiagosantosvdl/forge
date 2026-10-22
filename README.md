@@ -9,7 +9,7 @@ This is [@tiagosantosvdl's fork](https://github.com/tiagosantosvdl/forge) of
 [upstream Forge](https://github.com/forge-ext/forge), maintained using OpenAI
 Codex. This fork provides its own extension packages.
 
-- Current version: **22.51.17**.
+- Current version: **22.51.19**.
 - Extension UUID: `forge@tiagosantosvdl.github.com`.
 - Supported GNOME Shell versions: **45–51**, as declared in
   [metadata.json](metadata.json), with X11 and Wayland support. This is not a
@@ -56,10 +56,10 @@ with the same UUID.
 
 ### Debian / Ubuntu package
 
-For release `22.51.17`, install the downloaded package:
+For release `22.51.19`, install the downloaded package:
 
 ```sh
-sudo apt install ./gnome-shell-extension-forge-tiagosantosvdl_22.51.17_all.deb
+sudo apt install ./gnome-shell-extension-forge-tiagosantosvdl_22.51.19_all.deb
 ```
 
 The package declares dependencies on GNOME Shell 45–51 and `gir1.2-adw-1`.
@@ -82,7 +82,7 @@ per-user copy first with
 Install the downloaded ZIP:
 
 ```sh
-gnome-extensions install --force ./forge@tiagosantosvdl.github.com-22.51.17.zip
+gnome-extensions install --force ./forge@tiagosantosvdl.github.com-22.51.19.zip
 ```
 
 Install libadwaita's introspection bindings (`gir1.2-adw-1` on Debian / Ubuntu)
@@ -110,17 +110,17 @@ make release
 
 Building packages stages the extension under `temp/` without installing or
 activating it. The release version comes from `package.json`. For version
-`22.51.17`, the output is:
+`22.51.19`, the output is:
 
-- `dist/forge@tiagosantosvdl.github.com-22.51.17.zip`
-- `dist/gnome-shell-extension-forge-tiagosantosvdl_22.51.17_all.deb`
+- `dist/forge@tiagosantosvdl.github.com-22.51.19.zip`
+- `dist/gnome-shell-extension-forge-tiagosantosvdl_22.51.19_all.deb`
 - `dist/SHA256SUMS`
 
 Verify and install the local Debian build:
 
 ```sh
 (cd dist && sha256sum -c SHA256SUMS)
-sudo apt install ./dist/gnome-shell-extension-forge-tiagosantosvdl_22.51.17_all.deb
+sudo apt install ./dist/gnome-shell-extension-forge-tiagosantosvdl_22.51.19_all.deb
 ```
 
 Alternatively, build and install a per-user copy:
@@ -206,28 +206,46 @@ Forge saves monitor placement, workspace membership, groups, and split direction
 in `$XDG_STATE_HOME/forge/layouts.json`, normally
 `~/.local/state/forge/layouts.json`.
 
-Split sizes last for the current session. Restoring a display layout starts with
-equal shares, subject to window minimum sizes; resize ratios in older saved files
-are ignored. A new window stays on the monitor and workspace where it opens.
-Its app's saved placement and existing group are used only within that location,
-without rebuilding unrelated groups or changing their sizes. The same app can
-have independent placement histories on different monitors and workspaces.
+Split sizes last for the current session. Connecting or disconnecting another
+monitor preserves the groups and resize shares on monitors that remain active.
+Restoring a returning monitor starts with equal shares, subject to window minimum
+sizes; resize ratios in older saved files are ignored.
+
+A new window launched through a Shell app or a menu using Shell's launch context
+uses the monitor where it was launched. Its app's saved group is used only on
+that monitor and workspace. This also covers new Edge app windows that reuse a
+running process. Launches outside these Shell paths retain the location supplied
+by the application or GNOME. Existing windows activated without opening a new
+window and transient dialogs keep their placement.
 
 A tabbed group with only one window hides its tab bar and gives that space back
 to the window, even with automatic exit from tabbed layout disabled. A split
 inside a tab with multiple windows still keeps its group tab.
 
-Each set of active displays has its own saved layout. There are no fixed
-“docked” or “laptop-only” profiles. Displays are identified by hardware identity
-rather than their numerical index; rearranging or resizing the same displays
-reuses their layout. Displays without a unique serial use their connector, and
-otherwise identical identities are disambiguated by connector.
+Each physical monitor has its own saved layout, independent of which other
+monitors are connected. Displays are identified by hardware identity rather than
+their numerical index; rearranging or resizing the same displays reuses their
+layout. Displays without a unique serial use their connector, and otherwise
+identical identities are disambiguated by connector. Older monitor-set histories
+are migrated, preferring the last active configuration for each monitor and
+retaining the histories of disconnected monitors.
 
-When Forge encounters a new display configuration, groups on surviving displays
-stay there. Groups from missing displays move to the primary display on their
-existing workspaces. Groups that cannot fit side by side become tabs. Returning
-to a previously used configuration restores its saved layout after monitor
-changes settle.
+When a monitor disappears, its windows first use saved slots on the remaining
+monitors. If several slots match, Forge prefers their original monitor when it
+returns, then a monitor with matching group members, then the least busy monitor.
+Windows without a saved slot go to the monitor with the fewest tiled windows;
+equal counts prefer the larger display. Temporary placement without a saved slot
+does not overwrite remembered app positions. Reconnecting a monitor returns its
+displaced windows to it, unless they were deliberately moved elsewhere. This
+also lets undocking use the built-in display's history and docking restore the
+external displays' histories. Groups restored on a returning display that cannot
+fit side by side become tabs.
+
+When dropping onto a tabbed or stacked group, left/right places the dragged
+window beside the whole group, and top/bottom places it above/below the group.
+The group's existing members and internal splits stay intact. Center drops join
+the existing group. Previews cover the corresponding half or the full group,
+including when hovering a split member or the group title bar.
 
 Workspace additions and removals are handled, including renumbering saved
 workspace assignments after removal. When reconnecting displays, if a saved
@@ -397,18 +415,29 @@ the new code loads.
 Update the version in `package.json`, both root version fields in
 `package-lock.json`, and `version-name` in `metadata.json`. Update the version
 examples in this README and [RELEASE_NOTES.md](RELEASE_NOTES.md). Release tags
-must match `package.json`, such as `v22.51.17`.
+must match `package.json`, such as `v22.51.19`.
 
 The [release workflow](.github/workflows/release.yml) validates the source,
 builds packages, and publishes them when a matching version tag is pushed or a
 GitHub Release is published. The manual **Run workflow** option builds
 downloadable artifacts without publishing a release.
 
-Prerelease tags such as `v22.51.17-rc.1` use package version `22.51.17-rc.1`,
-GNOME `version-name` `22.51.17 rc.1`, and Debian version `22.51.17~rc.1`.
+Prerelease tags such as `v22.51.19-rc.1` use package version `22.51.19-rc.1`,
+GNOME `version-name` `22.51.19 rc.1`, and Debian version `22.51.19~rc.1`.
 The workflow marks those releases as prereleases.
 
 ### Recent changes
+
+Version 22.51.19 prevents pending auto-split branches from merging separate
+saved groups during restoration. Cross-monitor drags refresh fitting targets,
+and edge drops split beside the whole group horizontally or vertically while
+center drops join it. Existing corrupted saved group boundaries are not rebuilt.
+
+Version 22.51.18 remembers layouts per physical monitor, preserves groups and
+resize shares on surviving displays, and places displaced windows using saved
+slots or the least busy display. Shell-launched windows use their launch monitor,
+including Edge apps that reuse a running process. Older monitor-set histories
+are migrated to per-monitor histories.
 
 Version 22.51.17 keeps GTK 3 content corners square below the titlebar, fixing
 extra rounding at the menu bar in Inkscape while preserving outer window corners.

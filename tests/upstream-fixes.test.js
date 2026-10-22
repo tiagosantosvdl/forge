@@ -966,7 +966,7 @@ for (const outerLayout of ["TABBED", "STACKED"])
     dragged.node.mode = "GRAB_TILE";
     dragged.node.previewHint = new h.context.St.Bin();
     h.wm.nodeWinAtPointer = hovered.node;
-    h.wm.getPointer = () => [250, 250];
+    h.wm.getPointer = () => [500, 250];
     h.settings.get_string = () => "tabbed";
     h.booleans.set("preview-hint-enabled", true);
     h.wm.moveWindowToPointer(dragged.node, true);
@@ -1309,3 +1309,192 @@ test("tab bars count minimized and dragged windows, excluding floated and dead w
   second.actor.destroy();
   assert.equal(group.groupWindowCount(), 1);
 });
+
+for (const layout of ["TABBED", "STACKED"])
+  for (const nested of [false, true])
+    for (const edge of ["left", "right", "top", "bottom"])
+      test(`${edge} drop ${
+        nested ? "inside a split in" : "onto"
+      } ${layout} splits beside the whole group`, () => {
+        const h = harness();
+        const monitor = h.monitor();
+        const group = h.group(layout);
+        group.rect = { x: 100, y: 100, width: 1000, height: 600 };
+        group.percent = 0.65;
+        monitor.appendChild(group);
+        const unrelated = h.window("unrelated");
+        unrelated.node.percent = 0.35;
+        monitor.appendChild(unrelated.node);
+        const hovered = h.window("hovered", {
+          x: 100,
+          y: 135,
+          width: nested ? 500 : 1000,
+          height: 565,
+        });
+        const other = h.window("other");
+        const member = nested ? h.group("HSPLIT") : group;
+        if (nested) group.appendChild(member);
+        member.appendChild(hovered.node);
+        member.appendChild(other.node);
+        hovered.node.percent = 0.6;
+        other.node.percent = 0.4;
+        const dragged = h.window("dragged");
+        monitor.appendChild(dragged.node);
+        dragged.node.mode = "GRAB_TILE";
+        dragged.node.previewHint = new h.context.St.Bin();
+        h.wm.nodeWinAtPointer = hovered.node;
+        const pointers = {
+          left: [110, 400],
+          right: [1090, 400],
+          top: [600, 110],
+          bottom: [600, 690],
+        };
+        h.wm.getPointer = () => pointers[edge];
+        h.settings.get_string = () => "tabbed";
+        h.booleans.set("preview-hint-enabled", true);
+        const vertical = edge === "top" || edge === "bottom";
+        const before = edge === "left" || edge === "top";
+        const expected = {
+          x: edge === "right" ? 600 : 100,
+          y: edge === "bottom" ? 400 : 100,
+          width: vertical ? 1000 : 500,
+          height: vertical ? 300 : 600,
+        };
+        h.wm.moveWindowToPointer(dragged.node, true);
+        const hint = dragged.node.previewHint;
+        assert.deepEqual(
+          { x: hint.x, y: hint.y, width: hint.width, height: hint.height },
+          expected
+        );
+        assert.equal(group.parentNode, monitor); // Preview must not mutate the tree.
+        h.wm.moveWindowToPointer(dragged.node);
+        const split = group.parentNode;
+        assert.notEqual(split, monitor);
+        assert.equal(split.layout, vertical ? "VSPLIT" : "HSPLIT");
+        assert.equal(split.parentNode, monitor);
+        assert.deepEqual(
+          [...split.childNodes],
+          before ? [dragged.node, group] : [group, dragged.node]
+        );
+        assert.equal(group.layout, layout);
+        assert.equal(hovered.node.parentNode, member);
+        assert.equal(other.node.parentNode, member);
+        assert.deepEqual([hovered.node.percent, other.node.percent], [0.6, 0.4]);
+        assert.deepEqual([split.percent, unrelated.node.percent], [0.65, 0.35]);
+        assert.equal(group.decoration.destroyed, undefined);
+      });
+
+for (const layout of ["TABBED", "STACKED"])
+  test(`cross-monitor drag keeps visible ${layout} targets when pointer and window monitors differ`, () => {
+    const h = harness();
+    const workspace = h.group("HSPLIT", "WORKSPACE", "ws0");
+    h.tree.appendChild(workspace);
+    const left = h.monitor(),
+      right = h.monitor();
+    left._data = "mo0ws0";
+    right._data = "mo1ws0";
+    workspace.appendChild(left);
+    workspace.appendChild(right);
+    const group = h.group(layout);
+    right.appendChild(group);
+    group.rect = { x: 2000, y: 0, width: 1000, height: 800 };
+    const target = h.window("target", { x: 2000, y: 35, width: 1000, height: 765 });
+    const hidden = h.window("hidden", { x: 2000, y: 35, width: 1000, height: 765 });
+    group.appendChild(target.node);
+    group.appendChild(hidden.node);
+    const dragged = h.window("dragged");
+    left.appendChild(dragged.node);
+    dragged.node.mode = "GRAB_TILE";
+    h.wm._grabNodeWindow = dragged.node;
+    h.focus(dragged.meta);
+    let pointer = [2500, 400];
+    h.context.global.get_pointer = () => pointer;
+    h.context.global.display.get_current_monitor = () => 1;
+    h.context.global.display.sort_windows_by_stacking = (windows) => windows;
+    h.wm.allowDragDropTile = () => true;
+    h.settings.get_string = () => "tabbed";
+    h.booleans.set("preview-hint-enabled", true);
+    h.wm._handleMoving(dragged.node);
+    assert.deepEqual([...h.wm.sortedWindows], [target.meta]);
+    assert.equal(h.wm.nodeWinAtPointer, target.node);
+    assert.equal(dragged.node.previewHint.visible, true);
+    // Destination windows can change while a drag is already in progress.
+    target.meta.minimized = true;
+    h.wm.sortedWindows = [target.meta];
+    h.wm._handleMoving(dragged.node);
+    assert.deepEqual([...h.wm.sortedWindows], [hidden.meta]);
+    assert.equal(h.wm.nodeWinAtPointer, hidden.node);
+    // The group title bar is part of the drop target too.
+    pointer = [2500, 10];
+    h.wm._handleMoving(dragged.node);
+    assert.equal(h.wm.nodeWinAtPointer, hidden.node);
+    const hint = dragged.node.previewHint;
+    assert.deepEqual(
+      { x: hint.x, y: hint.y, width: hint.width, height: hint.height },
+      { x: 2000, y: 0, width: 1000, height: 400 }
+    );
+    hidden.meta.minimized = true;
+    h.wm._handleMoving(dragged.node);
+    assert.deepEqual([...h.wm.sortedWindows], []);
+    assert.equal(hint.visible, false);
+  });
+
+for (const layout of ["TABBED", "STACKED"])
+  for (const edge of ["top", "bottom"])
+    test(`${edge} drop preserves a legacy ${layout} monitor group inside a vertical split`, () => {
+      const h = harness();
+      const monitor = h.monitor();
+      monitor.layout = layout;
+      monitor.rect = { x: 0, y: 0, width: 1000, height: 800 };
+      const first = h.window("first"),
+        second = h.window("second"),
+        dragged = h.window("dragged");
+      monitor.appendChild(first.node);
+      monitor.appendChild(second.node);
+      const source = h.monitor();
+      source._data = "mo1ws0";
+      source.appendChild(dragged.node);
+      dragged.node.mode = "GRAB_TILE";
+      h.wm.nodeWinAtPointer = first.node;
+      h.wm.getPointer = () => [500, edge === "top" ? 10 : 790];
+      h.settings.get_string = () => "tabbed";
+      h.wm.moveWindowToPointer(dragged.node);
+      assert.equal(monitor.nodeType, "MONITOR");
+      const group = first.node.parentNode;
+      assert.equal(group.layout, layout);
+      assert.deepEqual([...group.childNodes], [first.node, second.node]);
+      const split = group.parentNode;
+      assert.equal(split.layout, "VSPLIT");
+      assert.equal(split.parentNode, monitor);
+      assert.deepEqual(
+        [...split.childNodes],
+        edge === "top" ? [dragged.node, group] : [group, dragged.node]
+      );
+    });
+
+for (const layout of ["TABBED", "STACKED"])
+  test(`center drop joins ${layout} even when the ungrouped center action is swap`, () => {
+    const h = harness();
+    const monitor = h.monitor();
+    const group = h.group(layout);
+    group.rect = { x: 0, y: 0, width: 1000, height: 800 };
+    monitor.appendChild(group);
+    const target = h.window("target"),
+      other = h.window("other"),
+      dragged = h.window("dragged");
+    group.appendChild(target.node);
+    group.appendChild(other.node);
+    monitor.appendChild(dragged.node);
+    dragged.node.mode = "GRAB_TILE";
+    dragged.node.previewHint = new h.context.St.Bin();
+    h.wm.nodeWinAtPointer = target.node;
+    h.wm.getPointer = () => [500, 400];
+    h.settings.get_string = () => "swap";
+    h.booleans.set("preview-hint-enabled", true);
+    h.wm.moveWindowToPointer(dragged.node, true);
+    const hint = dragged.node.previewHint;
+    assert.deepEqual({ x: hint.x, y: hint.y, width: hint.width, height: hint.height }, group.rect);
+    h.wm.moveWindowToPointer(dragged.node);
+    assert.deepEqual([...group.childNodes], [target.node, other.node, dragged.node]);
+    assert.equal(group.layout, layout);
+  });

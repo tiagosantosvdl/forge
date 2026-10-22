@@ -89,12 +89,27 @@ When dragging a window:
 
 - [ ] - Should show a preview hint where the window would be tiled. If Tile Modifier is set, Super or Ctrl or Alt would show preview otherwise shows preview automatically:
   - [ ] - For split layout, should show preview hint left/right on horizontal, top/bottom on vertical following the mouse pointer.
-  - [ ] - For tabbed layout, should show preview hint same size as the current front window.
-  - [ ] - For stacked layout, should show preview hint same size as the current front window.
+  - [ ] - On a tabbed or stacked group, center shows the whole group and joins it; left/right shows half of the group and places the dragged window beside it; top/bottom shows half and places it above/below it.
+  - [ ] - Repeat over a group member containing a split. Edge drops keep all remaining members, internal splits and unrelated sibling shares intact.
+  - [ ] - Crossing monitors keeps fitting previews available even while the pointer and dragged window report different monitors. Minimized or hidden tabs do not mask the current visible target, and hovering the group title bar still shows its edge preview.
   - [ ] - There should be the following preview hint regions: LEFT, TOP, RIGHT, BOTTOM and CENTER
 - [ ] - On dropping, should tile the window on the preview hint position shown before dropping.
 - [ ] - On dropping to a different monitor, should tile based on the preview hint position shown unless empty monitor.
   - [ ] - Empty monitors will not show a preview hint.
+
+## Monitor History and Launch Placement
+
+- [ ] Reopen both saved groups in quick succession, including Teams or Outlook first, so multiple windows await restoration. Both groups retain their members and ordering; repeat with some members already open and unrelated split windows present.
+- [ ] Group Edge and Firefox on one external display, and Teams, WhatsApp and Outlook in a separate group. Log out/in, then reopen in different orders on that display; each application joins its saved group.
+- [ ] Launch Outlook from a menu on the right display while Edge is already running on the left; Outlook opens on the right and joins its local saved group.
+- [ ] Repeat from the dash, app grid and keyboard launcher; changing focus or moving the pointer while the application starts must not change its launch monitor.
+- [ ] Activating an existing application, opening a transient dialog, or opening an unrelated background application must not move it to another application's launch monitor.
+- [ ] Add a third display, then disconnect it; groups, ordering and resize shares on the two surviving displays remain intact, including if GNOME renumbers their indices.
+- [ ] Disconnect a display with open windows. Displaced windows use matching saved positions on remaining displays; otherwise they distribute by tiled-window count, preferring larger displays on a tie.
+- [ ] Reconnect the display; its displaced windows return to its groups. Unknown fallback apps must not become permanent slots on their temporary host.
+- [ ] Undock with the built-in display enabled; applications use its saved groups and workspaces. Dock again with the built-in display disabled; external monitor layouts return.
+- [ ] Move a temporarily displaced window deliberately to another monitor; reconnecting its old display does not undo that move.
+- [ ] Disable Forge while apps are starting; launch hooks are removed, and existing windows remain usable.
 
 ## Floating Mode
 

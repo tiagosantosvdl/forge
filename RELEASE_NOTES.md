@@ -1,18 +1,34 @@
-# Forge 22.51.17
+# Forge 22.51.19
 
-Remove extra rounded corners below the titlebar in GTK 3 applications such as
-Inkscape. Keep the window background's top corners square while preserving
-rounded decorations, headerbars, and outer compositor clipping.
+Remember layouts per physical monitor rather than per monitor combination.
+Surviving displays keep their groups and resize shares. Displaced windows use
+saved slots on active displays, otherwise the least busy display, and return to
+their original display when it reconnects unless deliberately moved elsewhere.
+New windows launched through Shell app methods or Shell-created launch contexts
+use the launch monitor, including Edge apps reusing existing processes. Existing
+monitor-set histories migrate to per-monitor histories.
 
-The issue was reproduced with Forge's GTK CSS on a private GTK 3 display,
-including the stronger visual contrast when the window is focused. The corrected
-CSS removes the menu-area cut-outs in that isolated reproduction.
+Prevent batched window restoration from merging distinct saved groups. Rebuild
+only matching members of a provisional split branch, preserving unrelated
+windows, groups, actors and resize shares. This prevents mixed split/full-area
+group members from being introduced by that restoration path. Existing merged
+saved arrangements still require regrouping.
 
-Validation: all 198 JavaScript tests and fifteen Python tests passed, with the
-native GTK preferences test rerun outside the sandbox. Focused and unfocused
-GTK 3 pixel checks passed using the corrected production CSS. Formatting,
-checksums, and ZIP/Debian payload comparisons passed. The user reports that the
-Inkscape issue has not recurred after installation.
+Refresh drag targets during movement across monitors without requiring the
+pointer and dragged window to report the same monitor. Use visible group members
+and include the group title bar in hit testing.
 
-Log out and back in after installation to load the updated extension. Restart
-Inkscape afterward if it retains the old GTK styling.
+Treat grouped windows as one edge-drop target: left/right places the dragged
+window beside the group, top/bottom above/below it, and center joins the group.
+Previews use the corresponding half or full group rectangle. Preserve internal
+splits and unrelated sibling shares, including legacy monitor-level groups.
+
+Validation: all 273 JavaScript tests passed, including regressions for batched
+restoration, persistence, cross-monitor previews, and grouped edge drops. Changed
+JavaScript passed Prettier 2.7.1 and whitespace checks. The user reports the
+installed changes pass testing; this is not a complete GNOME compatibility matrix.
+
+This release also includes the GTK 3 content-corner fix from 22.51.17, keeping
+background corners square below titlebars while retaining rounded decorations.
+
+Log out and back in after installation to load the updated extension.
